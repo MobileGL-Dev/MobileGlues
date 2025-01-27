@@ -7,6 +7,8 @@
 
 #include <EGL/egl.h>
 
+typedef intptr_t EGLAttrib;
+
 typedef __eglMustCastToProperFunctionPointerType (*EGLGETPROCADDRESSPROCP) (const char *procname);
 
 typedef EGLint (*EGLGETERRORPROCP)(void);
