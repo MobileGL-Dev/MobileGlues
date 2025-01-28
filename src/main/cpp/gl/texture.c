@@ -41,6 +41,8 @@ GLenum internal_convert(GLenum internal_format, GLenum type) {
 void glTexParameterf(GLenum target, GLenum pname, GLfloat param) {
     LOG();
     pname = pname_convert(pname);
+    if(pname == GL_TEXTURE_LOD_BIAS)
+        return;
     LOG_D("glTexParameterf, target: %d, pname: %d, param: %f",target, pname, param);
     LOAD_GLES(glTexParameterf, void, GLenum target, GLenum pname, GLfloat param);
     gles_glTexParameterf(target,pname, param);

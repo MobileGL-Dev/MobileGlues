@@ -13,6 +13,7 @@
 #include "../gl/envvars.h"
 #include "../gl/log.h"
 #include "../gl/mg.h"
+#include "../gl/buffer.h"
 
 void *gles = NULL, *egl = NULL;
 
@@ -39,6 +40,14 @@ static const char *lib_ext[] = {
 static const char *gles3_lib[] = {
         "libGLESv3_CM",
         "libGLESv3",
+        NULL
+};
+
+static const char *egl_lib[] = {
+#if defined(BCMHOST)
+        "libbrcmEGL",
+#endif
+        "libEGL",
         NULL
 };
 
@@ -74,14 +83,14 @@ void load_libs() {
     if (! first) return;
     first = 0;
     const char *gles_override = GetEnvVar("LIBGL_GLES");
+    const char *egl_override = GetEnvVar("LIBGL_EGL");
     gles = open_lib(gles3_lib, gles_override);
+    egl = open_lib(egl_lib, egl_override);
 }
 
 void *(*gles_getProcAddress)(const char *name);
 
 void *proc_address(void *lib, const char *name) {
-    if (gles_getProcAddress)
-        return gles_getProcAddress(name);
     return dlsym(lib, name);
 }
 

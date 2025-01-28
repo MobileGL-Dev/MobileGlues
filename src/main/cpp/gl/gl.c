@@ -82,21 +82,6 @@ NATIVE_FUNCTION_HEAD(void, glGetFloatv, GLenum pname, GLfloat *params ) NATIVE_F
 
 //NATIVE_FUNCTION_HEAD(void, glGetIntegerv, GLenum pname, GLint *params ) NATIVE_FUNCTION_END_NO_RETURN(void,glGetIntegerv,pname,params)
 
-GLAPI GLAPIENTRY void glGetIntegerv(GLenum pname, GLint *params) {
-	LOG();
-	LOG_D("glGetIntegerv, pname: %d",pname);
-	if (pname == GL_CONTEXT_PROFILE_MASK) {
-		(*params) = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
-		return;
-	}
-	LOAD_GLES(glGetIntegerv, void, GLenum pname, GLint *params);
-	gles_glGetIntegerv(pname, params);
-	LOAD_GLES(glGetError, GLenum)            
-    GLenum ERR = gles_glGetError();          
-    if (ERR != GL_NO_ERROR)                  
-        LOG_E("ERROR: %d", ERR)              
-}
-
 NATIVE_FUNCTION_HEAD(void, glPushAttrib, GLbitfield mask ) NATIVE_FUNCTION_END_NO_RETURN(void,glPushAttrib,mask)
 
 NATIVE_FUNCTION_HEAD(void, glPopAttrib) NATIVE_FUNCTION_END_NO_RETURN(void,glPopAttrib)
@@ -774,6 +759,7 @@ NATIVE_FUNCTION_HEAD(void,glDetachShader,GLuint program, GLuint shader) NATIVE_F
 NATIVE_FUNCTION_HEAD(void,glGetAttachedShaders,GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders) NATIVE_FUNCTION_END_NO_RETURN(void,glGetAttachedShaders,program,maxCount,count,shaders);
 NATIVE_FUNCTION_HEAD(void,glGetShaderiv,GLuint shader, GLenum pname, GLint *params) NATIVE_FUNCTION_END_NO_RETURN(void,glGetShaderiv,shader,pname,params);
 NATIVE_FUNCTION_HEAD(void,glGetShaderInfoLog,GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog) NATIVE_FUNCTION_END_NO_RETURN(void,glGetShaderInfoLog,shader,bufSize,length,infoLog);
+
 NATIVE_FUNCTION_HEAD(void,glGetShaderPrecisionFormat,GLenum shadertype, GLenum precisiontype, GLint *range, GLint *precision) NATIVE_FUNCTION_END_NO_RETURN(void,glGetShaderPrecisionFormat,shadertype,precisiontype,range,precision);
 NATIVE_FUNCTION_HEAD(void,glGetShaderSource,GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *source) NATIVE_FUNCTION_END_NO_RETURN(void,glGetShaderSource,shader,bufSize,length,source);
 NATIVE_FUNCTION_HEAD(GLboolean,glIsShader,GLuint shader) NATIVE_FUNCTION_END(GLboolean,glIsShader,shader);
@@ -952,8 +938,12 @@ NATIVE_FUNCTION_HEAD(GLboolean,glIsBuffer,GLuint buffer); NATIVE_FUNCTION_END_NO
 NATIVE_FUNCTION_HEAD(void,glBufferData,GLenum target, GLsizeiptr size, const void* data, GLenum usage); NATIVE_FUNCTION_END_NO_RETURN(void,glBufferData,target,size,data,usage)
 NATIVE_FUNCTION_HEAD(void,glBufferSubData,GLenum target, GLintptr offset, GLsizeiptr size, const void* data); NATIVE_FUNCTION_END_NO_RETURN(void,glBufferSubData,target,offset,size,data)
 NATIVE_FUNCTION_HEAD(void,glGetBufferSubData,GLenum target, GLintptr offset, GLsizeiptr size, void* data); NATIVE_FUNCTION_END_NO_RETURN(void,glGetBufferSubData,target,offset,size,data)
-NATIVE_FUNCTION_HEAD(GLboolean,glUnmapBuffer,GLenum target); NATIVE_FUNCTION_END_NO_RETURN(GLboolean,glUnmapBuffer,target)
 NATIVE_FUNCTION_HEAD(void,glGetBufferParameteriv,GLenum target, GLenum pname, GLint* params); NATIVE_FUNCTION_END_NO_RETURN(void,glGetBufferParameteriv,target,pname,params)
+/*GLAPI GLAPIENTRY void glGetBufferParameteriv(GLenum target, GLenum pname, GLint* params) {
+	LOG();
+	return 
+}*/
+
 NATIVE_FUNCTION_HEAD(void,glGetBufferPointerv,GLenum target, GLenum pname, void* *params); NATIVE_FUNCTION_END_NO_RETURN(void,glGetBufferPointerv,target,pname,*params)
 NATIVE_FUNCTION_HEAD(void,glBlendEquationSeparate,GLenum modeRGB, GLenum modeAlpha); NATIVE_FUNCTION_END_NO_RETURN(void,glBlendEquationSeparate,modeRGB,modeAlpha)
 NATIVE_FUNCTION_HEAD(void,glDrawBuffers,GLsizei n, const GLenum* bufs); NATIVE_FUNCTION_END_NO_RETURN(void,glDrawBuffers,n,bufs)
@@ -1659,6 +1649,7 @@ NATIVE_FUNCTION_HEAD(void,glWeightusvARB,GLint size, const GLushort* weights); N
 NATIVE_FUNCTION_HEAD(void,glWeightuivARB,GLint size, const GLuint* weights); NATIVE_FUNCTION_END_NO_RETURN(void,glWeightuivARB,size,weights)
 NATIVE_FUNCTION_HEAD(void,glWeightPointerARB,GLint size, GLenum type, GLsizei stride, const void* pointer); NATIVE_FUNCTION_END_NO_RETURN(void,glWeightPointerARB,size,type,stride,pointer)
 NATIVE_FUNCTION_HEAD(void,glVertexBlendARB,GLint count); NATIVE_FUNCTION_END_NO_RETURN(void,glVertexBlendARB,count)
+NATIVE_FUNCTION_HEAD(void,glBindBuffer,GLenum target, GLuint buffer); NATIVE_FUNCTION_END_NO_RETURN(void,glBindBuffer,target,buffer)
 NATIVE_FUNCTION_HEAD(void,glBindBufferARB,GLenum target, GLuint buffer); NATIVE_FUNCTION_END_NO_RETURN(void,glBindBufferARB,target,buffer)
 NATIVE_FUNCTION_HEAD(void,glDeleteBuffersARB,GLsizei n, const GLuint* buffers); NATIVE_FUNCTION_END_NO_RETURN(void,glDeleteBuffersARB,n,buffers)
 NATIVE_FUNCTION_HEAD(void,glGenBuffersARB,GLsizei n, GLuint* buffers); NATIVE_FUNCTION_END_NO_RETURN(void,glGenBuffersARB,n,buffers)
@@ -1666,7 +1657,6 @@ NATIVE_FUNCTION_HEAD(GLboolean,glIsBufferARB,GLuint buffer); NATIVE_FUNCTION_END
 NATIVE_FUNCTION_HEAD(void,glBufferDataARB,GLenum target, GLsizeiptrARB size, const void* data, GLenum usage); NATIVE_FUNCTION_END_NO_RETURN(void,glBufferDataARB,target,size,data,usage)
 NATIVE_FUNCTION_HEAD(void,glBufferSubDataARB,GLenum target, GLintptrARB offset, GLsizeiptrARB size, const void* data); NATIVE_FUNCTION_END_NO_RETURN(void,glBufferSubDataARB,target,offset,size,data)
 NATIVE_FUNCTION_HEAD(void,glGetBufferSubDataARB,GLenum target, GLintptrARB offset, GLsizeiptrARB size, void* data); NATIVE_FUNCTION_END_NO_RETURN(void,glGetBufferSubDataARB,target,offset,size,data)
-NATIVE_FUNCTION_HEAD(GLboolean,glUnmapBufferARB,GLenum target); NATIVE_FUNCTION_END_NO_RETURN(GLboolean,glUnmapBufferARB,target)
 NATIVE_FUNCTION_HEAD(void,glGetBufferParameterivARB,GLenum target, GLenum pname, GLint* params); NATIVE_FUNCTION_END_NO_RETURN(void,glGetBufferParameterivARB,target,pname,params)
 NATIVE_FUNCTION_HEAD(void,glGetBufferPointervARB,GLenum target, GLenum pname, void* *params); NATIVE_FUNCTION_END_NO_RETURN(void,glGetBufferPointervARB,target,pname,*params)
 NATIVE_FUNCTION_HEAD(void,glVertexAttrib1dARB,GLuint index, GLdouble x); NATIVE_FUNCTION_END_NO_RETURN(void,glVertexAttrib1dARB,index,x)
@@ -3306,3 +3296,4 @@ NATIVE_FUNCTION_HEAD(void,glReplacementCodeuiTexCoord2fNormal3fVertex3fSUN,GLuin
 NATIVE_FUNCTION_HEAD(void,glReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN,const GLuint* rc, const GLfloat* tc, const GLfloat* n, const GLfloat* v); NATIVE_FUNCTION_END_NO_RETURN(void,glReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN,rc,tc,n,v)
 NATIVE_FUNCTION_HEAD(void,glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN,GLuint rc, GLfloat s, GLfloat t, GLfloat r, GLfloat g, GLfloat b, GLfloat a, GLfloat nx, GLfloat ny, GLfloat nz, GLfloat x, GLfloat y, GLfloat z); NATIVE_FUNCTION_END_NO_RETURN(void,glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN,rc,s,t,r,g,b,a,nx,ny,nz,x,y,z)
 NATIVE_FUNCTION_HEAD(void,glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN,const GLuint* rc, const GLfloat* tc, const GLfloat* c, const GLfloat* n, const GLfloat* v); NATIVE_FUNCTION_END_NO_RETURN(void,glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN,rc,tc,c,n,v)
+NATIVE_FUNCTION_HEAD(void,glBlendEquationSeparateATI,GLenum modeRGB, GLenum modeA); NATIVE_FUNCTION_END_NO_RETURN(void,glBlendEquationSeparateATI,modeRGB,modeA)

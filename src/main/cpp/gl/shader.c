@@ -15,7 +15,7 @@
 #include "glsl/glsl_for_es.h"
 
 bool can_run_essl3(int esversion, const char *glsl) {
-    int glsl_version = 0;
+    int glsl_version;
 
     if (strncmp(glsl, "#version 100", 12) == 0) {
         return true;
@@ -63,9 +63,11 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar *const* string, c
     }
     LOAD_GLES2(glShaderSource, void, GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
     if (gles_glShaderSource) {
-        if(is_direct_shader(source))
+        if(is_direct_shader(source)){
+            LOG_D("[INFO] [Shader] Direct shader source: ");
+            LOG_D("%s", source);
             converted = strdup(source);
-        else{
+        } else {
             int glsl_version = getGLSLVersion(source);
             LOG_D("[INFO] [Shader] Shader source: ");
             LOG_D("%s", source);
@@ -75,13 +77,14 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar *const* string, c
                 
             }
             else {
-                
                 converted = GLSLtoGLSLES(source, shaderType, 320);
             }
             LOG_D("\n[INFO] [Shader] Converted Shader source: \n%s", converted);
         }
 
-        gles_glShaderSource(shader, count, (const GLchar * const*)((converted)?(&converted):(&source)), length);
+        gles_glShaderSource(shader, count, (const GLchar * const*)&converted, length);
+    } else {
+        LOG_E("No gles_glShaderSource")
     }
 }
     

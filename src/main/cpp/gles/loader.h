@@ -15,27 +15,13 @@ extern void *gles, *egl;
 
 #define WARN_NULL(name) if (name == NULL) { LOG_W("%s line %d function %s: " #name " is NULL\n", __FILE__, __LINE__, __func__); }
 
-#define PUSH_IF_COMPILING_EXT(nam, ...)                                     \
-    if (glstate->list.active) {                                             \
-        if (!glstate->list.pending) {                                       \
-            NewStage(glstate->list.active, STAGE_GLCALL);                   \
-            push_##nam(__VA_ARGS__);                                        \
-            noerrorShim();						                            \
-            return (nam##_RETURN)0;                                         \
-        }                                                                   \
-        else gl4es_flush();                                                 \
-    }
-
+void *open_lib(const char **names, const char *override);
 #define LOAD_RAW_GLES(name, type, ...)                                      \
     {                                                                       \
-        static bool first = true;                                           \
-        if (first) {                                                        \
-            first = false;                                                  \
-            if (gles != NULL) {                                             \
-                gles_##name = (name##_PTR)proc_address(gles, #name);        \
-            }                                                               \
-            WARN_NULL(gles_##name);                                         \
+        if (gles != NULL) {                                                 \
+            gles_##name = (name##_PTR)proc_address(gles, #name);            \
         }                                                                   \
+        WARN_NULL(gles_##name);                                             \
     }
 
 #define LOAD_LIB(type, name, ...)                                           \
@@ -46,6 +32,19 @@ extern void *gles, *egl;
 #define LOAD_GLES(name,type, ...)            LOAD_LIB(type, name, __VA_ARGS__)
 #define LOAD_GLES2(name,type, ...)           LOAD_LIB(type, name, __VA_ARGS__)
 #define LOAD_GLES3(name,type, ...)           LOAD_LIB(type, name, __VA_ARGS__)
+#define LOAD_EGL(name) \
+static name##_PTR egl_##name = NULL; \
+{ \
+        static bool first = true; \
+        if (first) { \
+            first = false; \
+            if (egl != NULL) { \
+                egl_##name = (name##_PTR)proc_address(egl, #name); \
+            } \
+            WARN_NULL(egl_##name); \
+        } \
+}
+
 
 #define NATIVE_FUNCTION_HEAD(type,name,...)                                 \
 GLAPI GLAPIENTRY type name(__VA_ARGS__) {                                   \
@@ -67,7 +66,5 @@ GLAPI GLAPIENTRY type name(__VA_ARGS__) {                                   \
     if (ERR != GL_NO_ERROR)                                                 \
         LOG_E("ERROR: %d", ERR)                                             \
 }
-
-#define LOAD_EGL(name) LOAD_LIB(egl, name)
 
 #endif // _MOBILEGLUES_LOADER_H_
