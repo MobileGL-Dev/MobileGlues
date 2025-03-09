@@ -22,6 +22,7 @@ __attribute__((used)) const char* copyright = "Copyright (C) 2025 Swung0x48, BZL
 const char* copyright = "Copyright (C) 2025 Swung0x48, BZLZHH, Tungsten. All rights reserved. Logo artwork kindly provided by Aou156.";
 #endif
 
+#if !defined(__APPLE__)
 extern char* (*MesaConvertShader)(const char *src, unsigned int type, unsigned int glsl, unsigned int essl);
 void init_libshaderconv() {
     const char *shaderconv_lib = "libshaderconv";
@@ -40,6 +41,7 @@ void init_libshaderconv() {
         }
     }
 }
+#endif
 
 void init_config() {
     if(mkdir(MG_DIRECTORY_PATH, 0755) != 0 && errno != EEXIST) {
@@ -83,8 +85,10 @@ void proc_init() {
     init_target_egl();
     init_target_gles();
 
+#if !defined(__APPLE__)
     init_libshaderconv();
-
+#endif
+    
 #if PROFILING
     init_perfetto();
 #endif
