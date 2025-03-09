@@ -6,7 +6,11 @@
 #define MOBILEGLUES_MG_H
 
 #include <cstring>
+#if defined __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>
+#endif
 #include <cstdlib>
 #include <android/log.h>
 

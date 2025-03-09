@@ -5,7 +5,11 @@
 #include "texture.h"
 
 #include <cstring>
+#if defined __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>
+#endif
 #include <vector>
 #include <unordered_map>
 #include <android/log.h>
