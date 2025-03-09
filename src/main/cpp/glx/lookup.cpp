@@ -16,26 +16,21 @@
 
 void *glXGetProcAddress(const char *name) {
     LOG()
+#if defined __APPLE__
+    return dlsym((void*)(~(uintptr_t)0), name);
+#else
     void* proc = dlsym(RTLD_DEFAULT, (const char*)name);
 
     if (!proc) {
         fprintf(stderr, "Failed to get OpenGL function %s: %s\n", name, dlerror());
         LOG_W("Failed to get OpenGL function: %s", (const char*)name);
-        return NULL;
+        return nullptr;
     }
 
     return proc;
+#endif
 }
 
 void *glXGetProcAddressARB(const char *name) {
-    LOG()
-    void* proc = dlsym(RTLD_DEFAULT, (const char*)name);
-
-    if (!proc) {
-        fprintf(stderr, "Failed to get OpenGL function %s: %s\n", name, dlerror());
-        LOG_W("Failed to get OpenGL function: %s", (const char*)name);
-        return NULL;
-    }
-
-    return proc;
+    return glXGetProcAddress(name);
 }

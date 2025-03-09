@@ -17,10 +17,13 @@ FUNC_GL_STATE_ENUM(proxy_intformat)
 FILE* file;
 
 void start_log() {
+#if !defined(__APPLE__)
     file = fopen(LOG_FILE_PATH, "a");
+#endif
 }
 
 void write_log(const char* format, ...) {
+#if !defined(__APPLE__)
     if (file == nullptr) {
         return;
     }
@@ -36,14 +39,17 @@ void write_log(const char* format, ...) {
 #endif
     // Todo: close file
     //fclose(file);
+#endif
 }
 
 void clear_log() {
+#if !defined(__APPLE__)
     file = fopen(LOG_FILE_PATH, "w");
     if (file == nullptr) {
         return;
     }
     fclose(file);
+#endif
 }
 
 GLenum pname_convert(GLenum pname){

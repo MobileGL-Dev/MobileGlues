@@ -15,7 +15,7 @@ extern "C" {
 **   https://github.com/KhronosGroup/OpenGL-Registry
 */
 
-#include <GLES3/gl3platform.h>
+#include <GLES/gl3platform.h>
 
 #ifndef GL_APIENTRYP
 #define GL_APIENTRYP GL_APIENTRY*

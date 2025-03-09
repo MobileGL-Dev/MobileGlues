@@ -5,10 +5,16 @@
 #include "texture.h"
 
 #include <cstring>
+#if defined __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>
+#endif
 #include <vector>
 #include <unordered_map>
+#if !defined(__APPLE__)
 #include <android/log.h>
+#endif
 
 #include "gl.h"
 #include "../gles/gles.h"
@@ -595,13 +601,13 @@ void glGetTexLevelParameterfv(GLenum target, GLint level,GLenum pname, GLfloat *
         switch (pname) {
             case GL_TEXTURE_WIDTH:
                 (*params) = (float)nlevel(gl_state->proxy_width, level);
-                break;
+                return;
             case GL_TEXTURE_HEIGHT:
                 (*params) = (float)nlevel(gl_state->proxy_height, level);
-                break;
+                return;
             case GL_TEXTURE_INTERNAL_FORMAT:
                 (*params) = (float)gl_state->proxy_intformat;
-                break;
+                return;
             default:
                 return;
         }
@@ -619,13 +625,13 @@ void glGetTexLevelParameteriv(GLenum target, GLint level,GLenum pname, GLint *pa
         switch (pname) {
             case GL_TEXTURE_WIDTH:
                 (*params) = nlevel(gl_state->proxy_width, level);
-                break;
+                return;
             case GL_TEXTURE_HEIGHT:
                 (*params) = nlevel(gl_state->proxy_height, level);
-                break;
+                return;
             case GL_TEXTURE_INTERNAL_FORMAT:
                 (*params) = (GLint)gl_state->proxy_intformat;
-                break;
+                return;
             default:
                 return;
         }

@@ -9,8 +9,12 @@
 extern "C" {
 #endif
 
+#if !defined(__APPLE__)
 #include <__stddef_size_t.h>
-
+#else
+typedef unsigned long size_t;
+#endif
+    
 struct global_settings_t {
     int angle; // 0, 1
     int ignore_error; // 0, 1, 2

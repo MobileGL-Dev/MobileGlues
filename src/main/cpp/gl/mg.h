@@ -5,10 +5,18 @@
 #ifndef MOBILEGLUES_MG_H
 #define MOBILEGLUES_MG_H
 
+typedef unsigned int uint;
+
 #include <cstring>
+#if defined __APPLE__
+#include <stdlib.h>
+#else
 #include <malloc.h>
-#include <cstdlib>
+#endif
+#include <cstdlib> 
+#if !defined(__APPLE__)
 #include <android/log.h>
+#endif
 
 #include "gl.h"
 #include "../gles/gles.h"

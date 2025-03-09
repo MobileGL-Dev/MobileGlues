@@ -18,7 +18,6 @@ static EGLSurface eglSurface = EGL_NO_SURFACE;
 static EGLContext eglContext = EGL_NO_CONTEXT;
 
 void init_target_egl() {
-
     LOAD_EGL(eglGetProcAddress);
     LOAD_EGL(eglBindAPI);
     LOAD_EGL(eglInitialize);

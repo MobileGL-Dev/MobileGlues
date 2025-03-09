@@ -49,6 +49,16 @@ void glGetIntegerv(GLenum pname, GLint *params) {
             (*params) = es_params * 2;
             break;
         }
+        case GL_CONTEXT_FLAGS: {
+            if(hardware->es_version < 320) {
+                (*params) = GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT;
+                return;
+            }
+            LOAD_GLES_FUNC(glGetIntegerv)
+            gles_glGetIntegerv(pname, params);
+            LOG_D("  -> %d",*params)
+            CHECK_GL_ERROR
+        }
         default:
             LOAD_GLES_FUNC(glGetIntegerv)
             gles_glGetIntegerv(pname, params);
