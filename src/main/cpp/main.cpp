@@ -94,6 +94,6 @@ void proc_init() {
 #endif
 
     // Cleanup
-    destroy_temp_egl_ctx();
+    //destroy_temp_egl_ctx();
     g_initialized = 1;
 }
