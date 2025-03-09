@@ -6,7 +6,11 @@
 #include "../gles/loader.h"
 
 #include <EGL/egl.h>
+
+#if !defined(__APPLE__)
 #include <vulkan/vulkan.h>
+#endif
+
 #include <string.h>
 
 static const char *gles3_lib[] = {
@@ -88,6 +92,7 @@ int isAdreno830(const char* gpu) {
 }
 
 int hasVulkan13() {
+#if !defined(__APPLE__)
     VkResult result = VK_SUCCESS;
     uint32_t instanceExtensionCount = 0;
 
@@ -145,5 +150,6 @@ int hasVulkan13() {
     free(physicalDevices);
 
     vkDestroyInstance(instance, NULL);
+#endif
     return 0;
 }
