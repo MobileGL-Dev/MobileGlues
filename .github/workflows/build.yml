@@ -5,10 +5,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Navigate to CPP directory
-        run: cd src/main/cpp 
       - name: Build MobileGlues
         run: |
+          cd src/main/cpp 
           wget https://github.com/leetal/ios-cmake/raw/master/ios.toolchain.cmake
           cmake -B build \
             -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake \
