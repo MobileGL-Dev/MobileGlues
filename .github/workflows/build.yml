@@ -16,6 +16,7 @@ jobs:
             -DPLATFORM=OS64 \
             -DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration
           cmake --build build --config RelWithDebInfo --target mobileglues
+          ls
       - name: Upload lib
         uses: actions/upload-artifact@v4
         with:
