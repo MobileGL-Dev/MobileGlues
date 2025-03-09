@@ -5,6 +5,8 @@
 #ifndef MOBILEGLUES_MG_H
 #define MOBILEGLUES_MG_H
 
+typedef unsigned int uint;
+
 #include <cstring>
 #if defined __APPLE__
 #include <stdlib.h>
