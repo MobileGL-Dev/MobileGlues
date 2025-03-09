@@ -20,6 +20,21 @@ const char *glEnumToString(GLenum e);
 }
 #endif
 
+#if defined(__APPLE__)
+
+#define LOG() \
+    if(DEBUG||GLOBAL_DEBUG) {printf("Use function: %s\n", __FUNCTION__);}
+
+#define LOG_D(...) if(DEBUG||GLOBAL_DEBUG) {printf(__VA_ARGS__);printf("\n");}
+#define LOG_W(...) if(DEBUG||GLOBAL_DEBUG) {printf(__VA_ARGS__);printf("\n");}
+#define LOG_E(...) if(DEBUG||GLOBAL_DEBUG) {printf(__VA_ARGS__);printf("\n");}
+#define LOG_F(...) if(DEBUG||GLOBAL_DEBUG) {printf(__VA_ARGS__);printf("\n");}
+#define LOG_V(...) {printf(__VA_ARGS__);printf("\n");}
+#define LOG_I(...) {printf(__VA_ARGS__);printf("\n");}
+#define LOG_W_FORCE(...) {printf(__VA_ARGS__);printf("\n");}
+
+#else
+
 #if GLOBAL_DEBUG_FORCE_OFF
 #define LOG()  {}
 #define LOG_D(...) {}
@@ -45,6 +60,8 @@ const char *glEnumToString(GLenum e);
 #define LOG_V(...) {__android_log_print(ANDROID_LOG_VERBOSE, RENDERERNAME, __VA_ARGS__);printf(__VA_ARGS__);printf("\n");write_log(__VA_ARGS__);}
 #define LOG_I(...) {__android_log_print(ANDROID_LOG_INFO, RENDERERNAME, __VA_ARGS__);printf(__VA_ARGS__);printf("\n");write_log(__VA_ARGS__);}
 #define LOG_W_FORCE(...) {__android_log_print(ANDROID_LOG_WARN, RENDERERNAME, __VA_ARGS__);printf(__VA_ARGS__);printf("\n");write_log(__VA_ARGS__);}
+
+#endif
 
 #define MOBILEGLUES_LOG_H
 

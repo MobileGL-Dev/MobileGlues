@@ -6,7 +6,11 @@
 #define MOBILEGLUES_INCLUDES_H
 
 #define RENDERERNAME "MobileGlues"
+
+#if !defined(__APPLE__)
 #include <android/log.h>
+#endif
+
 #include <dlfcn.h>
 
 #include <EGL/egl.h>

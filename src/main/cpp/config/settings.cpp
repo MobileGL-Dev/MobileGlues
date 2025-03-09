@@ -19,8 +19,6 @@ void init_settings() {
     global_settings.ext_compute_shader = 0;
     global_settings.maxGlslCacheSize = 0;
     global_settings.enableCompatibleMode = 0;
-    global_settings.enableANGLE = 0;
-    global_settings.enableNoError = 0;
 #else
     int success = initialized;
     if (!success) {
