@@ -11,8 +11,10 @@
 #else
 #include <malloc.h>
 #endif
-#include <cstdlib>
+#include <cstdlib> 
+#if !defined(__APPLE__)
 #include <android/log.h>
+#endif
 
 #include "gl.h"
 #include "../gles/gles.h"

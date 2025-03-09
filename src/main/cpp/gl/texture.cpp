@@ -12,7 +12,9 @@
 #endif
 #include <vector>
 #include <unordered_map>
+#if !defined(__APPLE__)
 #include <android/log.h>
+#endif
 
 #include "gl.h"
 #include "../gles/gles.h"
