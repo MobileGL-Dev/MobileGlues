@@ -12,6 +12,7 @@ jobs:
           cmake -B build \
             -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake \
             -DSTATICLIB=OFF \
+            -DMACOS=ON \
             -DPLATFORM=OS64 \
             -DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration
           cmake --build build --config RelWithDebInfo --target mobileglues
@@ -19,4 +20,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MobileGlues-iOS
-          path: src/main/cpp/build/RelWithDebInfo/libGL.dylib
+          path: lib
