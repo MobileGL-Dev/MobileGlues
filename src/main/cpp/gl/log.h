@@ -8,7 +8,7 @@
 
 #define FORCE_SYNC_WITH_LOG_FILE 0
 
-#define GLOBAL_DEBUG 0
+#define GLOBAL_DEBUG 1
 
 #ifdef __cplusplus
 extern "C" {
