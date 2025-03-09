@@ -61,7 +61,6 @@ if(MACOS)
         target_link_libraries(${CMAKE_PROJECT_NAME}
                 ${LIB_DIR}/libglslang.a
                 ${LIB_DIR}/libspirv-cross-c-shared.dylib
-                ${LIB_DIR}/libshaderconv.a
                 ${LIB_DIR}/libGenericCodeGen.a
                 ${LIB_DIR}/libglslang-default-resource-limits.a
                 ${LIB_DIR}/libMachineIndependent.a
