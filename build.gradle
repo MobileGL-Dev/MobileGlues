@@ -1,5 +1,18 @@
 apply plugin: 'com.android.library'
 
+// Workaround for using as a submodule
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+}
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.2' // 1.3.0-beta2
+        classpath 'com.android.application:com.android.application.gradle.plugin:8.7.2'
+    }
+}
+
 android {
     namespace 'com.swung0x48.mobileglues'
     compileSdk 34
