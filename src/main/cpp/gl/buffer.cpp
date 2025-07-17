@@ -45,8 +45,9 @@ void remove_buffer(GLuint key) {
 }
 
 GLuint find_real_buffer(GLuint key) {
-    auto it = g_gen_buffers.find(key);
-    if (it != g_gen_buffers.end())
+auto it = g_gen_buffers.find(key);
+if (it != g_gen_buffers.end())
+    g_gen_buffers.erase(it);
         return it->second;
     else
         return 0;
