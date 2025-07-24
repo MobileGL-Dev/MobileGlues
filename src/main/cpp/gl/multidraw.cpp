@@ -456,7 +456,6 @@ GLAPI GLAPIENTRY void mg_glMultiDrawElementsBaseVertex_compute(
         GLES.glGenBuffers(1, &g_prefixsumbuffer);
         GLES.glGenBuffers(1, &g_firstidx_ssbo);
         GLES.glGenBuffers(1, &g_basevtx_ssbo);
-        GLES.glGenBuffers(1, &g_prefixsumbuffer);
         GLES.glGenBuffers(1, &g_outputibo);
 
         g_compute_program = compile_compute_program(multidraw_comp_shader);
