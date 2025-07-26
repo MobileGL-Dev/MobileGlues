@@ -122,6 +122,8 @@ void InitGLESBaseExtensions() {
              "GL_ARB_clear_texture "
              "GL_ARB_get_program_binary "
              "GL_ARB_separate_shader_objects "
+             "GL_EXT_direct_state_access "
+             "GL_ARB_direct_state_access "
              "GL_KHR_no_error ";
 }
 

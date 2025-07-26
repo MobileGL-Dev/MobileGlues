@@ -6,7 +6,7 @@
 #define MOBILEGLUES_VERTEXATTRIB_H
 
 #include "../includes.h"
-#include "gl.h"
+#include <GL/gl.h>
 #include "glcorearb.h"
 #include "log.h"
 #include "../gles/loader.h"

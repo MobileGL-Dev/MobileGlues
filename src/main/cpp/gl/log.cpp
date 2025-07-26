@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <mutex>
 
-#include "gl.h"
+#include <GL/gl.h>
 
 #ifndef __ANDROID__
 // Define a stub for __android_log_print if not on Android

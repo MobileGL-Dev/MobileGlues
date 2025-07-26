@@ -5,7 +5,7 @@
 #ifndef MOBILEGLUES_PROGRAM_H
 #define MOBILEGLUES_PROGRAM_H
 
-#include "gl.h"
+#include <GL/gl.h>
 
 #ifdef __cplusplus
 extern "C" {

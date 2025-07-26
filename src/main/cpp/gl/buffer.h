@@ -3,10 +3,10 @@
 //
 
 #ifndef MOBILEGLUES_BUFFER_H
-
+#define GL_GLEXT_PROTOTYPES
 #include "../includes.h"
 #include "../../config/settings.h"
-#include "gl.h"
+#include <GL/gl.h>
 #include "glcorearb.h"
 #include "log.h"
 #include "../gles/loader.h"

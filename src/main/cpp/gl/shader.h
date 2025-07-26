@@ -4,7 +4,7 @@
 #ifndef MOBILEGLUES_SHADER_H
 #define MOBILEGLUES_SHADER_H
 
-#include "gl.h"
+#include <GL/gl.h>
 #include <string>
 
 struct shader_t {

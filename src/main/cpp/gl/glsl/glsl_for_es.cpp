@@ -570,6 +570,32 @@ vec2 mg_textureQueryLod(sampler2D tex, vec2 uv) {
     glsl.insert(insertPos, "\n" + textureQueryLodImpl + "\n");
 }
 
+static void inject_atomicCounterAdd(std::string& glsl) {
+    if (glsl.find("atomicCounterAdd") == std::string::npos) {
+        return;
+    }
+
+    const std::regex defRegex(R"(uint\s+mg_atomicCounterAdd\s*\()", std::regex::ECMAScript);
+    if (std::regex_search(glsl, defRegex)) {
+        return;
+    }
+
+    const std::string atomicCounterAddImpl = R"(
+#define atomicCounterAdd mg_atomicCounterAdd
+
+uint mg_atomicCounterAdd(atomic_uint ac, uint val) {
+    uint old = atomicCounterIncrement(ac) - 1u;
+    for (uint i = 1u; i < val; ++i) {
+        atomicCounterIncrement(ac);
+    }
+    return old;
+}
+)";
+
+    size_t insertPos = find_insertion_point(glsl);
+    glsl.insert(insertPos, "\n" + atomicCounterAddImpl + "\n");
+}
+
 static inline void inject_temporal_filter(std::string& glsl) {
     const std::regex defRegex(R"(vec4\s+GI_TemporalFilter\s*\()", std::regex::ECMAScript);
 
@@ -637,7 +663,7 @@ void inject_mg_macro_definition(std::string& glslCode) {
 }
 
 
-std::string preprocess_glsl(const std::string& glsl) {
+std::string preprocess_glsl(const std::string& glsl, GLenum shaderType) {
     std::string ret = glsl;
     // Remove lines beginning with `#line`
     ret = replace_line_starting_with(ret, "#line");
@@ -664,6 +690,10 @@ std::string preprocess_glsl(const std::string& glsl) {
     if (hardware->emulate_texture_buffer) {
         // Sampler buffer processing
         process_sampler_buffer(ret);
+    }
+    
+    if (shaderType == GL_COMPUTE_SHADER) {
+        inject_atomicCounterAdd(ret);
     }
 
     return ret;
@@ -783,7 +813,7 @@ std::string spirv_to_essl(std::vector<unsigned int> spirv, uint essl_version, in
 
 static bool glslang_inited = false;
 std::string GLSLtoGLSLES_2(const char *glsl_code, GLenum glsl_type, uint essl_version, int& return_code) {
-    std::string correct_glsl_str = preprocess_glsl(glsl_code);
+    std::string correct_glsl_str = preprocess_glsl(glsl_code, glsl_type);
     LOG_D("Firstly converted GLSL:\n%s", correct_glsl_str.c_str())
     int glsl_version = get_or_add_glsl_version(correct_glsl_str);
 
@@ -806,7 +836,10 @@ std::string GLSLtoGLSLES_2(const char *glsl_code, GLenum glsl_type, uint essl_ve
     }
 
     // Post-processing ESSL
-    essl = removeLayoutBinding(essl);
+
+    if (glsl_type != GL_COMPUTE_SHADER) {
+        essl = removeLayoutBinding(essl);
+    }
     essl = processOutColorLocations(essl);
     essl = forceSupporterOutput(essl);
 

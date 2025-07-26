@@ -14,7 +14,7 @@
 #include <android/log.h>
 #endif
 
-#include "gl.h"
+#include <GL/gl.h>
 #include "../gles/gles.h"
 #include "log.h"
 #include "../gles/loader.h"
@@ -36,6 +36,14 @@ int nlevel(int size, int level) {
 
 std::unordered_map<GLuint, texture_t> g_textures;
 GLuint bound_texture = 0;
+
+GLenum mgGetTexTarget(GLuint id) {
+    if (g_textures.find(id) == g_textures.end()) {
+        return GL_TEXTURE_2D;
+    }
+
+    return g_textures[id].target;
+}
 
 void internal_convert(GLenum* internal_format, GLenum* type, GLenum* format) {
     if (format && *format == GL_BGRA)
@@ -715,19 +723,6 @@ void glDeleteTextures(GLsizei n, const GLuint *textures) {
         if (bound_texture == textures[i])
             bound_texture = 0;
     }
-}
-
-void glGenerateTextureMipmap(GLuint texture) {
-    LOG()
-    GLint currentTexture;
-    auto& tex = g_textures[bound_texture];
-    GLenum target = tex.target;
-    GLenum binding = get_binding_for_target(target);
-    if (binding == 0) return;
-    glGetIntegerv(binding, &currentTexture);
-    glBindTexture(target, texture);
-    glGenerateMipmap(target);
-    glBindTexture(target, currentTexture);
 }
 
 void glActiveTexture(GLenum texture) {

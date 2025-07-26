@@ -7,7 +7,7 @@
 #include "loader.h"
 #include "../includes.h"
 #include "loader.h"
-#include "../gl/gl.h"
+#include <GL/gl.h>
 #include "../gl/glext.h"
 #include "../gl/envvars.h"
 #include "../gl/log.h"
@@ -208,6 +208,10 @@ void InitGLESCapabilities() {
 
     if (global_settings.ext_compute_shader) {
         AppendExtension("GL_ARB_compute_shader");
+    }
+
+    if (g_gles_caps.major > 3 || (g_gles_caps.major == 3 && g_gles_caps.minor >= 1)) {
+        AppendExtension("GL_ARB_vertex_attrib_binding");
     }
 }
 

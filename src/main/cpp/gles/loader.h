@@ -2,7 +2,7 @@
 #define MOBILEGLUES_GLES_LOADER_H_
 
 #include "../gl/log.h"
-#include "../gl/gl.h"
+#include <GL/gl.h>
 #include "gles.h"
 #include <dlfcn.h>
 #include <cstdio>

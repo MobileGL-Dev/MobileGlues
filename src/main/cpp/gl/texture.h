@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#include "gl.h"
+#include <GL/gl.h>
 
 GLAPI GLAPIENTRY void glTexParameterf(GLenum target, GLenum pname, GLfloat param);
 GLAPI GLAPIENTRY void glTexImage1D(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid* pixels);
@@ -53,5 +53,7 @@ struct texture_t {
 };
 
 extern std::unordered_map<GLuint, texture_t> g_textures;
+
+GLenum mgGetTexTarget(GLuint id);
 
 #endif

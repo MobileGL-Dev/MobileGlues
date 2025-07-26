@@ -43,6 +43,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         gl/buffer.cpp
         gl/getter.cpp
         gl/pixel.cpp
+        gl/DSA/DSAWrapper.cpp
         gl/glsl/glsl_for_es.cpp
         gl/glsl/cache.cpp
         
