@@ -106,20 +106,18 @@ void prepare_indirect_buffer(const GLsizei *counts, GLenum type, const void *con
                                   0, primcount * sizeof(draw_elements_indirect_command_t),
                                   GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-    GLsizei elementSize;
-    switch (type) {
-        case GL_UNSIGNED_BYTE:
-            elementSize = 1;
-            break;
-        case GL_UNSIGNED_SHORT:
-            elementSize = 2;
-            break;
-        case GL_UNSIGNED_INT:
-            elementSize = 4;
-            break;
-        default:
-            elementSize = 4;
+inline GLsizei getElementSize(GLenum type) 
+{
+switch (type) {
+    case GL_UNSIGNED_BYTE:  return 1;
+    case GL_UNSIGNED_SHORT: return 2;
+    case GL_UNSIGNED_INT:   return 4;
+    default:                return 4;
     }
+}
+
+const GLsizei elementSize = getElementSize(type);
+            
 
     for (GLsizei i = 0; i < primcount; ++i) {
         auto byteOffset = reinterpret_cast<uintptr_t>(indices[i]);
