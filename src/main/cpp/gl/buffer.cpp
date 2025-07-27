@@ -44,8 +44,10 @@ void modify_buffer(GLuint key, GLuint value) {
 }
 
 void remove_buffer(GLuint key) {
-    if (g_gen_buffers.find(key) != g_gen_buffers.end())
-        g_gen_buffers.erase(key);
+    auto it = g_gen_buffers.find(key);
+    if (it != g_gen_buffers.end()) {
+        g_gen_buffers.erase(it);
+    }
 }
 
 GLuint find_real_buffer(GLuint key) {
