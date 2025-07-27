@@ -35,6 +35,7 @@ GLAPI GLAPIENTRY void glDrawElements(GLenum mode, GLsizei count, GLenum type, co
 
 GLAPI GLAPIENTRY void glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format);
 GLAPI GLAPIENTRY void glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z);
+GLAPI GLAPIENTRY void glMemoryBarrier(GLbitfield barriers);
 GLAPI GLAPIENTRY void glUniform1i(GLint location, GLint v0);
 
 #ifdef __cplusplus

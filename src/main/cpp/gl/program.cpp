@@ -18,6 +18,9 @@
 extern std::unordered_map<GLuint, bool> shader_map_is_sampler_buffer_emulated;
 std::unordered_map<GLuint, bool> program_map_is_sampler_buffer_emulated;
 
+extern std::unordered_map<GLuint, bool> shader_map_is_atomic_counter_emulated;
+std::unordered_map<GLuint, bool> program_map_is_atomic_counter_emulated;
+
 char* updateLayoutLocation(const char* esslSource, GLuint color, const char* name) {
     std::string shaderCode(esslSource);
 
@@ -142,6 +145,10 @@ void glAttachShader(GLuint program, GLuint shader) {
     LOG_D("glAttachShader(%u, %u)", program, shader)
     if (hardware->emulate_texture_buffer && shader_map_is_sampler_buffer_emulated[shader])
         program_map_is_sampler_buffer_emulated[program] = true;
+    if (shader_map_is_atomic_counter_emulated[shader]) {
+        program_map_is_atomic_counter_emulated[program] = true;
+		LOG_D("Shader %d is atomic counter emulated, setting program %d to atomic counter emulated", shader, program)
+    }
 
     GLES.glAttachShader(program, shader);
     CHECK_GL_ERROR

@@ -19,6 +19,7 @@ GLuint bufSampelerLoc;
 std::string bufSampelerName;
 
 extern std::unordered_map<GLuint, bool> program_map_is_sampler_buffer_emulated;
+extern std::unordered_map<GLuint, bool> program_map_is_atomic_counter_emulated;
 
 unordered_map<GLuint, SamplerInfo> g_samplerCacheForSamplerBuffer;
 
@@ -99,10 +100,6 @@ void prepareForDraw() {
     }
 }
 
-// solve the crash error for ANGLE, but it will make Derivative Main with Optifine not work!
-
-//_Thread_local static bool unexpected_error = false; 
-
 void glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void* indices, GLsizei primcount) {
     LOG()
     LOG_D("glDrawElementsInstanced, mode: %d, count: %d, type: %d, indices: %p, primcount: %d",
@@ -116,67 +113,73 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const void* indices
     LOG()
     LOG_D("glDrawElements, mode: %d, count: %d, type: %d, indices: %p", mode, count, type, indices)
     prepareForDraw();
-    //LOAD_GLES_FUNC(glGetError)
-    //GLenum pre_err = GLES.glGetError();
-    //if(pre_err != GL_NO_ERROR) {
-    //    LOG_D("Skipping due to prior error: 0x%04X", pre_err)
-    //    return;
-    //}
-    //if (!unexpected_error) {
-    //    LOG_D("es_glDrawElements, mode: %d, count: %d, type: %d, indices: %p", mode, count, type, indices)
     GLES.glDrawElements(mode, count, type, indices);
     CHECK_GL_ERROR
-    //} else {
-    //    unexpected_error = false;
-    //}
 }
 
 void glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format) {
-
     LOG()
     LOG_D("glBindImageTexture, unit: %d, texture: %d, level: %d, layered: %d, layer: %d, access: %d, format: %d",
           unit, texture, level, layered, layer, access, format)
-    //LOAD_GLES_FUNC(glGetError)
     GLES.glBindImageTexture(unit, texture, level, layered, layer, access, format);
     CHECK_GL_ERROR
-    //GLenum err;
-    //while((err = GLES.glGetError()) != GL_NO_ERROR) {
-    //    LOG_D("GL Error: 0x%04X", err)
-    //    unexpected_error = true;
-    //}
 }
 
 void glUniform1i(GLint location, GLint v0) {
     LOG()
     LOG_D("glUniform1i, location: %d, v0: %d", location, v0)
-    //LOAD_GLES_FUNC(glGetError)
     GLES.glUniform1i(location, v0);
     CHECK_GL_ERROR
-    //GLenum err;
-    //while((err = GLES.glGetError()) != GL_NO_ERROR) {
-    //    LOG_D("GL Error: 0x%04X", err)
-    //    unexpected_error = true;
-    //}
+}
+
+void bindAllAtomicCounterAsSSBO() {
+    GLint maxBindings = 0;
+    GLES.glGetIntegerv(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxBindings);
+    if (maxBindings <= 0) {
+		LOG_W("No atomic counter buffer bindings available, maxBindings: %d", maxBindings);
+        return;
+    }
+
+    std::vector<GLuint> buffers(maxBindings, 0);
+
+    for (GLint i = 0; i < maxBindings; ++i) {
+        GLES.glGetIntegeri_v(GL_ATOMIC_COUNTER_BUFFER_BINDING, i, reinterpret_cast<GLint*>(&buffers[i]));
+    }
+
+    for (GLint i = 0; i < maxBindings; ++i) {
+        GLuint buf = buffers[i];
+        if (buf != 0) {
+            GLES.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, buf);
+        }
+    }
+
+	LOG_D("Bound %d atomic counter buffers as SSBOs", maxBindings);
 }
 
 void glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z) {
     LOG()
     LOG_D("glDispatchCompute, num_groups_x: %d, num_groups_y: %d, num_groups_z: %d",
           num_groups_x, num_groups_y, num_groups_z)
-    //LOAD_GLES_FUNC(glGetError)
-    //GLenum pre_err = GLES.glGetError();
-    //if(pre_err != GL_NO_ERROR) {
-    //    LOG_D("Skipping due to prior error: 0x%04X", pre_err)
-    //    return;
-    //}
-    //if (!unexpected_error) {
-    //    LOG_D("es_glDispatchCompute, num_groups_x: %d, num_groups_y: %d, num_groups_z: %d",
-    //          num_groups_x, num_groups_y, num_groups_z)
+    if (program_map_is_atomic_counter_emulated[gl_state->current_program]) {
+		bindAllAtomicCounterAsSSBO();
+        LOG_D("Atomic counters bound as SSBOs for program %d", gl_state->current_program);
+    }
+    else {
+		LOG_D("No atomic counters bound as SSBOs for program %d", gl_state->current_program);
+    }
     GLES.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
     CHECK_GL_ERROR
-    //} else {
-    //    unexpected_error = false;
-    //}
+}
+
+void glMemoryBarrier(GLbitfield barriers) {
+    LOG()
+    LOG_D("glMemoryBarrier, barriers: %d", barriers)
+    if (program_map_is_atomic_counter_emulated[gl_state->current_program]) {
+		barriers |= GL_ATOMIC_COUNTER_BARRIER_BIT;
+		barriers |= GL_SHADER_STORAGE_BARRIER_BIT;
+    }
+    GLES.glMemoryBarrier(barriers);
+    CHECK_GL_ERROR
 }
 
 void glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void* indices, GLint basevertex) {

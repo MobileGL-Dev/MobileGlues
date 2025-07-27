@@ -311,7 +311,7 @@ NATIVE_FUNCTION_HEAD(void, glValidateProgramPipeline, GLuint pipeline) NATIVE_FU
 NATIVE_FUNCTION_HEAD(void, glGetProgramPipelineInfoLog, GLuint pipeline, GLsizei bufSize, GLsizei *length, GLchar *infoLog) NATIVE_FUNCTION_END_NO_RETURN(void, glGetProgramPipelineInfoLog, pipeline,bufSize,length,infoLog)
 //NATIVE_FUNCTION_HEAD(void, glBindImageTexture, GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format) NATIVE_FUNCTION_END_NO_RETURN(void, glBindImageTexture, unit,texture,level,layered,layer,access,format)
 NATIVE_FUNCTION_HEAD(void, glGetBooleani_v, GLenum target, GLuint index, GLboolean *data) NATIVE_FUNCTION_END_NO_RETURN(void, glGetBooleani_v, target,index,data)
-NATIVE_FUNCTION_HEAD(void, glMemoryBarrier, GLbitfield barriers) NATIVE_FUNCTION_END_NO_RETURN(void, glMemoryBarrier, barriers)
+//NATIVE_FUNCTION_HEAD(void, glMemoryBarrier, GLbitfield barriers) NATIVE_FUNCTION_END_NO_RETURN(void, glMemoryBarrier, barriers)
 NATIVE_FUNCTION_HEAD(void, glMemoryBarrierByRegion, GLbitfield barriers) NATIVE_FUNCTION_END_NO_RETURN(void, glMemoryBarrierByRegion, barriers)
 NATIVE_FUNCTION_HEAD(void, glTexStorage2DMultisample, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations) NATIVE_FUNCTION_END_NO_RETURN(void, glTexStorage2DMultisample, target,samples,internalformat,width,height,fixedsamplelocations)
 NATIVE_FUNCTION_HEAD(void, glGetMultisamplefv, GLenum pname, GLuint index, GLfloat *val) NATIVE_FUNCTION_END_NO_RETURN(void, glGetMultisamplefv, pname,index,val)
