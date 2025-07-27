@@ -26,15 +26,11 @@ struct framebuffer_t {
 GLint getMaxDrawBuffers();
 
 GLAPI GLAPIENTRY void glBindFramebuffer(GLenum target, GLuint framebuffer);
-
 GLAPI GLAPIENTRY void glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
-
+GLAPI GLAPIENTRY void glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level);
 GLAPI GLAPIENTRY void glDrawBuffer(GLenum buf);
-
 GLAPI GLAPIENTRY void glDrawBuffers(GLsizei n, const GLenum *bufs);
-
 GLAPI GLAPIENTRY void glReadBuffer(GLenum src);
-
 GLAPI GLAPIENTRY GLenum glCheckFramebufferStatus(GLenum target);
 
 #ifdef __cplusplus
