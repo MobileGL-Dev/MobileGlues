@@ -18,7 +18,7 @@
 
 #define DEBUG 0	
 
-const char* atomicCounterEmulatedWatermark = "\n// Non-opaque atomic uniform converted to SSBO\n";
+const char* atomicCounterEmulatedWatermark = "// Non-opaque atomic uniform converted to SSBO";
 
 #if !defined(__APPLE__)
 char* (*MesaConvertShader)(const char *src, unsigned int type, unsigned int glsl, unsigned int essl);
@@ -537,15 +537,43 @@ bool process_non_opaque_atomic_to_ssbo(std::string& source) {
         );
     }
 
+	// insert memoryBarrierBuffer
     {
-        std::regex rx_barrier(R"(\batomicAdd\s*\([^;]*\);)");
-        source = std::regex_replace(source,
-            rx_barrier,
-            "$&\n    memoryBarrierBuffer();"
+        std::regex rx_barrier(
+            R"(([ \t]*\batomicAdd\b[^;]*;))",
+            std::regex::icase
         );
+
+        std::set<size_t> processed_positions;
+        std::string result;
+        size_t last_pos = 0;
+
+        for (auto it = std::sregex_iterator(source.begin(), source.end(), rx_barrier);
+            it != std::sregex_iterator(); ++it) {
+
+            size_t start_pos = it->position();
+            size_t end_pos = start_pos + it->length();
+
+            if (processed_positions.find(start_pos) != processed_positions.end()) {
+                continue;
+            }
+
+            result += source.substr(last_pos, start_pos - last_pos);
+
+            std::string matched_stmt = it->str();
+            result += matched_stmt;
+
+            result += "\n    memoryBarrierBuffer();";
+
+            processed_positions.insert(start_pos);
+            last_pos = end_pos;
+        }
+
+        result += source.substr(last_pos);
+        source = result;
     }
 
-    source += atomicCounterEmulatedWatermark;
+    source += "\n" + std::string(atomicCounterEmulatedWatermark);
     return true;
 }
 
