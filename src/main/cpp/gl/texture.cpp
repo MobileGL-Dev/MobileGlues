@@ -158,7 +158,7 @@ void internal_convert(GLenum* internal_format, GLenum* type, GLenum* format) {
         break;
     case GL_RED:
         if (type) {
-            switch (*type) {
+           switch (*type) {
             case GL_UNSIGNED_BYTE:
                 *internal_format = GL_R8;
                 if (format) *format = GL_RED;
@@ -177,7 +177,7 @@ void internal_convert(GLenum* internal_format, GLenum* type, GLenum* format) {
                 break;
             default:
                 LOG_E("Unsupported type for GL_RED: %s", glEnumToString(*type));
-                if (type) *type = GL_UNSIGNED_BYTE; // Fallback to unsigned byte
+                *type = GL_UNSIGNED_BYTE; // Fallback to unsigned byte
                 *internal_format = GL_R8; // Fallback to R8
                 if (format) *format = GL_RED;
 				break;
