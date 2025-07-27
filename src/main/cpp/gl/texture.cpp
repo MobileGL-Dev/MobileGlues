@@ -38,11 +38,10 @@ std::unordered_map<GLuint, texture_t> g_textures;
 GLuint bound_texture = 0;
 
 GLenum mgGetTexTarget(GLuint id) {
-    if (g_textures.find(id) == g_textures.end()) {
+if (!g_textures.contains(id)) {
         return GL_TEXTURE_2D;
     }
-
-    return g_textures[id].target;
+return g_textures[id].target;
 }
 
 // Inline mapping for various internal formats to format and type
