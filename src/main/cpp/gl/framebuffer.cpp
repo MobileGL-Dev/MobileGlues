@@ -176,8 +176,10 @@ GLenum glCheckFramebufferStatus(GLenum target) {
         LOG_W_FORCE("Now try to cheat.")
         return GL_FRAMEBUFFER_COMPLETE;
     }
-    return status;
+
     CHECK_GL_ERROR
+    return status;
+    
 }
 
 void glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level) {
