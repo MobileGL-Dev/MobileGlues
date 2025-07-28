@@ -230,9 +230,9 @@ const GLubyte * glGetString( GLenum name ) {
 #endif
 #if defined(VERSION_TYPE)
 #if VERSION_TYPE == VERSION_ALPHA
-                versionString += ".Alpha";
+                versionString += "·Alpha";
 #elif VERSION_TYPE == VERSION_DEVELOPMENT
-                versionString += ".Dev";
+                versionString += "·Dev";
 #endif
 #endif
                 versionString += VERSION_SUFFIX;

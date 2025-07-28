@@ -132,30 +132,7 @@ void glUniform1i(GLint location, GLint v0) {
     CHECK_GL_ERROR
 }
 
-void bindAllAtomicCounterAsSSBO() {
-    GLint maxBindings = 0;
-    GLES.glGetIntegerv(GL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxBindings);
-    if (maxBindings <= 0) {
-		LOG_W("No atomic counter buffer bindings available, maxBindings: %d", maxBindings);
-        return;
-    }
-
-    std::vector<GLuint> buffers(maxBindings, 0);
-
-    for (GLint i = 0; i < maxBindings; ++i) {
-        GLES.glGetIntegeri_v(GL_ATOMIC_COUNTER_BUFFER_BINDING, i, reinterpret_cast<GLint*>(&buffers[i]));
-    }
-
-    for (GLint i = 0; i < maxBindings; ++i) {
-        GLuint buf = buffers[i];
-        if (buf != 0) {
-            GLES.glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, buf);
-        }
-    }
-
-	LOG_D("Bound %d atomic counter buffers as SSBOs", maxBindings);
-}
-
+void bindAllAtomicCounterAsSSBO();
 void glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z) {
     LOG()
     LOG_D("glDispatchCompute, num_groups_x: %d, num_groups_y: %d, num_groups_z: %d",
