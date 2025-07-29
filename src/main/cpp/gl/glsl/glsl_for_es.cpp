@@ -563,7 +563,7 @@ bool process_non_opaque_atomic_to_ssbo(std::string& source) {
             std::string matched_stmt = it->str();
             result += matched_stmt;
 
-            result += "\n    memoryBarrierBuffer();barrier();";
+            result += "\n    memoryBarrierBuffer();";
 
             processed_positions.insert(start_pos);
             last_pos = end_pos;
