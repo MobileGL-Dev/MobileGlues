@@ -203,10 +203,15 @@ std::string forceSupporterOutput(const std::string& glslCode) {
 }
 
 std::string removeLayoutBinding(const std::string& glslCode) {
-    static std::regex bindingRegex(R"(layout\s*\(\s*binding\s*=\s*\d+\s*\)\s*)");
+    // Static regex expressions - compiled only once during the program's lifetime
+    static const std::regex bindingRegex(R"(layout\s*\(\s*binding\s*=\s*\d+\s*\)\s*)");
+    static const std::regex bindingRegex2(R"(layout\s*\(\s*binding\s*=\s*\d+\s*,)");
+    
+    // Two-stage regex replacement
+
     std::string result = std::regex_replace(glslCode, bindingRegex, "");
-    static std::regex bindingRegex2(R"(layout\s*\(\s*binding\s*=\s*\d+\s*,)");
     result = std::regex_replace(result, bindingRegex2, "layout(");
+    
     return result;
 }
 
