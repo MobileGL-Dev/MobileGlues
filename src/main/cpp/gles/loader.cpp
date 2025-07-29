@@ -215,6 +215,16 @@ void InitGLESCapabilities() {
 		AppendExtension("GL_EXT_direct_state_access");
     }
 
+	int glVersion = GLVersion.toInt(2);
+    for (int ver = 32; ver <= glVersion; ++ver) {
+        if (global_settings.ext_gl43 && ver == 43)
+			continue;
+        if (ver > 33 && ver < 40)
+			continue;
+		LOG_D("Appending OpenGL extension for version %d", ver)
+		AppendExtension(("OpenGL" + std::to_string(ver)).c_str());
+    }
+
     if (g_gles_caps.major > 3 || (g_gles_caps.major == 3 && g_gles_caps.minor >= 1)) {
         AppendExtension("GL_ARB_vertex_attrib_binding");
     }

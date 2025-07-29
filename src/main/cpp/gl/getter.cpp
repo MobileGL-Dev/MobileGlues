@@ -3,12 +3,14 @@
 //
 
 #include "getter.h"
-#include "../config/settings.h"
 #include "buffer.h"
 #include <string>
+#include <format>
 #include <vector>
 
 #define DEBUG 0
+
+Version GLVersion;
 
 void glGetIntegerv(GLenum pname, GLint *params) {
     LOG()
@@ -38,10 +40,10 @@ void glGetIntegerv(GLenum pname, GLint *params) {
             (*params) = num_extensions;
             break;
         case GL_MAJOR_VERSION:
-            (*params) = 4;
+            (*params) = GLVersion.Major;
             break;
         case GL_MINOR_VERSION:
-            (*params) = 0;
+            (*params) = GLVersion.Minor;
             break;
         case GL_MAX_TEXTURE_IMAGE_UNITS: {
             int es_params = 16;
@@ -112,11 +114,6 @@ void InitGLESBaseExtensions() {
              "GL_ARB_imaging "
              "GL_ARB_draw_buffers_blend "
              "OpenGL15 "
-             "OpenGL30 "
-             "OpenGL31 "
-             "OpenGL32 "
-             "OpenGL33 "
-             "OpenGL40 "
              "GL_ARB_shader_storage_buffer_object "
              "GL_ARB_shader_image_load_store "
              "GL_ARB_clear_texture "
@@ -219,7 +216,15 @@ const GLubyte * glGetString( GLenum name ) {
         }
         case GL_VERSION: {
             if (versionString.empty()) {
-                versionString = "4.0.0 MobileGlues ";
+                versionString = GLVersion.toString();
+                if (GLVersion.toInt(2) == DEFAULT_GL_VERSION) {
+					versionString += " MobileGlues ";
+                }
+                else {
+					Version defaultVersion = Version(DEFAULT_GL_VERSION);
+                    versionString += " §4§l(" + defaultVersion.toString() + ") MobileGlues§r ";
+                }
+
                 versionString += std::to_string(MAJOR) + "."
                                 +  std::to_string(MINOR) + "."
                                 +  std::to_string(REVISION);
@@ -285,11 +290,12 @@ const GLubyte * glGetStringi(GLenum name, GLuint index) {
                     delimiter = ", ";
                     break;
                 case GL_VERSION:
-                    str = (const GLubyte*)"4.0.0 MobileGlues";
+                    str = (const GLubyte*)
+                        (GLVersion.toString() + " MobileGlues").c_str();
                     delimiter = " .";
                     break;
                 case GL_SHADING_LANGUAGE_VERSION:
-                    str = (const GLubyte*)"4.50 MobileGlues with glslang and SPIRV-Cross";
+                    str = (const GLubyte*)"4.60 MobileGlues with glslang and SPIRV-Cross";
                     break;
                 case GL_EXTENSIONS:
                     str = glGetString(GL_EXTENSIONS);
@@ -333,12 +339,16 @@ const GLubyte * glGetStringi(GLenum name, GLuint index) {
 
 void glGetQueryObjectiv(GLuint id, GLenum pname, GLint* params) {
     LOG()
-    GLES.glGetQueryObjectivEXT(id, pname, params);
-    CHECK_GL_ERROR
+    if (GLES.glGetQueryObjectivEXT) {
+        GLES.glGetQueryObjectivEXT(id, pname, params);
+        CHECK_GL_ERROR
+    }
 }
 
 void glGetQueryObjecti64v(GLuint id, GLenum pname, GLint64* params) {
     LOG()
-    GLES.glGetQueryObjecti64vEXT(id, pname, params);
-    CHECK_GL_ERROR
+    if (GLES.glGetQueryObjecti64vEXT) {
+        GLES.glGetQueryObjecti64vEXT(id, pname, params);
+        CHECK_GL_ERROR
+    }
 }
