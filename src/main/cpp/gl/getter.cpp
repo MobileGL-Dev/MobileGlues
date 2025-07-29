@@ -251,7 +251,7 @@ const GLubyte * glGetString( GLenum name ) {
             if (hardware->es_version < 310)
                 return (const GLubyte *) "4.00 MobileGlues with glslang and SPIRV-Cross";
             else
-                return (const GLubyte *) "4.50 MobileGlues with glslang and SPIRV-Cross";
+                return (const GLubyte *) "4.60 MobileGlues with glslang and SPIRV-Cross";
         case GL_EXTENSIONS:
             return (const GLubyte *) GetExtensionsList().c_str();
         default:
