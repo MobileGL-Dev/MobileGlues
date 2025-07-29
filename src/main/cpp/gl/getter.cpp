@@ -122,8 +122,6 @@ void InitGLESBaseExtensions() {
              "GL_ARB_clear_texture "
              "GL_ARB_get_program_binary "
              "GL_ARB_separate_shader_objects "
-             "GL_EXT_direct_state_access "
-             "GL_ARB_direct_state_access "
              "GL_KHR_no_error ";
 }
 
@@ -253,7 +251,7 @@ const GLubyte * glGetString( GLenum name ) {
             if (hardware->es_version < 310)
                 return (const GLubyte *) "4.00 MobileGlues with glslang and SPIRV-Cross";
             else
-                return (const GLubyte *) "4.50 MobileGlues with glslang and SPIRV-Cross";
+                return (const GLubyte *) "4.60 MobileGlues with glslang and SPIRV-Cross";
         case GL_EXTENSIONS:
             return (const GLubyte *) GetExtensionsList().c_str();
         default:

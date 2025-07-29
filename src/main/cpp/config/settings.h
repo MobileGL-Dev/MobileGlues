@@ -63,6 +63,7 @@ extern "C" {
         bool ext_gl43;
         bool ext_compute_shader;
         bool ext_timer_query;
+        bool ext_direct_state_access;
         bool buffer_coherent_as_flush;
         size_t max_glsl_cache_size;
         multidraw_mode_t multidraw_mode;

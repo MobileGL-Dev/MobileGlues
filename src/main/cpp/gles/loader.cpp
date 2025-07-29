@@ -210,6 +210,11 @@ void InitGLESCapabilities() {
         AppendExtension("GL_ARB_compute_shader");
     }
 
+    if (global_settings.ext_direct_state_access) {
+		AppendExtension("GL_ARB_direct_state_access");
+		AppendExtension("GL_EXT_direct_state_access");
+    }
+
     if (g_gles_caps.major > 3 || (g_gles_caps.major == 3 && g_gles_caps.minor >= 1)) {
         AppendExtension("GL_ARB_vertex_attrib_binding");
     }
