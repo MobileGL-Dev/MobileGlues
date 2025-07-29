@@ -769,7 +769,7 @@ int get_or_add_glsl_version(std::string& glsl) {
     return glsl_version;
 }
 
-std::vector<unsigned int> glsl_to_spirv(GLenum shader_type, int glsl_version, const char * const *shader_src, int& errc) {
+const std::vector<unsigned int>& glsl_to_spirv(GLenum shader_type, int glsl_version, const char * const *shader_src, int& errc) {
     EShLanguage shader_language;
     switch (shader_type) {
         case GL_VERTEX_SHADER:
