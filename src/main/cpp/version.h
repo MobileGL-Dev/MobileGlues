@@ -6,14 +6,15 @@
 
 #define VERSION_DEVELOPMENT 0
 #define VERSION_ALPHA 1
-#define VERSION_RELEASE 2
+#define VERSION_BETA 2
+#define VERSION_RELEASE 10
 
 #define MAJOR 1
 #define MINOR 3
 #define REVISION 0
 #define PATCH 0
 
-#define VERSION_TYPE VERSION_ALPHA
+#define VERSION_TYPE VERSION_BETA
 
 #define VERSION_SUFFIX ""
 

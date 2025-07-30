@@ -497,10 +497,16 @@ void glTexBuffer(GLenum target, GLenum internalformat, GLuint buffer) {
         GLES.glPixelStorei(GL_UNPACK_SKIP_PIXELS, prev_skip_pixels);
         GLES.glPixelStorei(GL_UNPACK_SKIP_ROWS, prev_skip_rows);
 
-        auto& tex = g_textures[boundTexture];
-        tex.width = width;
-        tex.height = height;
-        tex.internal_format = internalformat;
+        auto tex = mgGetTexObjectByTarget(target);
+        tex->target = ConvertGLEnumToTextureTarget(target);
+        tex->internal_format = internalformat;
+        tex->width = width;
+        tex->height = height;
+        tex->depth = 1;
+        tex->swizzle_param[0] = GL_RED;
+        tex->swizzle_param[1] = GL_GREEN;
+        tex->swizzle_param[2] = GL_BLUE;
+        tex->swizzle_param[3] = GL_ALPHA;
 
         LOG_D("Called glTexImage2D with internalformat = 0x%X", internalformat);
 

@@ -82,11 +82,11 @@ void setupBufferTextureUniforms(GLuint program) {
             continue;
         }
         
-        GLint width = g_textures[texId].width;
+		auto texObject = mgGetTexObjectByID(texId);
         
         GLES.glUniform1i(locSampler, unit);
-        GLES.glUniform1i(locWidth, g_textures[texId].width);
-        GLES.glUniform1i(locHeight, g_textures[texId].height);
+        GLES.glUniform1i(locWidth, texObject->width);
+        GLES.glUniform1i(locHeight, texObject->height);
         
         GLES.glActiveTexture(GL_TEXTURE0 + prev_unit);
     }

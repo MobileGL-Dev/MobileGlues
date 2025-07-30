@@ -795,8 +795,12 @@ void glGetNamedRenderbufferParameteriv(GLuint renderbuffer, GLenum pname, GLint*
 // texture
 static thread_local ankerl::unordered_dense::map<GLenum, std::vector<GLuint>> textureBindingStack;
 
+GLenum GetTexTarget(GLuint texture) {
+	return ConvertTextureTargetToGLEnum(mgGetTexObjectByID(texture)->target);
+}
+
 void temporarilyBindTexture(GLuint textureID, GLenum possibleTarget = 0) {
-	GLenum target = possibleTarget ? possibleTarget : mgGetTexTarget(textureID);
+	GLenum target = possibleTarget ? possibleTarget : GetTexTarget(textureID);
 	GLenum bindingQuery = GetBindingQuery(target, true);
 	GLint prev = 0;
 	glGetIntegerv(bindingQuery, &prev);
@@ -812,7 +816,7 @@ void temporarilyBindTexture(GLuint textureID, GLenum possibleTarget = 0) {
 }
 
 void restoreTemporaryTextureBinding(GLuint textureID, GLenum possibleTarget = 0) {
-	GLenum target = possibleTarget ? possibleTarget : mgGetTexTarget(textureID);
+	GLenum target = possibleTarget ? possibleTarget : GetTexTarget(textureID);
 	auto stackIt = textureBindingStack.find(target);
 	if (stackIt == textureBindingStack.end() || stackIt->second.empty()) {
 		LOG_D("[DSA] [Restore] no saved binding for target 0x%X", target);
@@ -899,7 +903,7 @@ void glTextureBufferRange(GLuint texture, GLenum internalformat, GLuint buffer, 
 #define TEXTURE_OP_FUNC_BEGIN(func_name) \
     LOG() \
     LOG_D(#func_name ", texture: %u", texture); \
-    GLenum target = mgGetTexTarget(texture); \
+    GLenum target = GetTexTarget(texture); \
     temporarilyBindTexture(texture);
 
 #define TEXTURE_OP_FUNC_END \
@@ -1076,7 +1080,7 @@ void glBindTextureUnit(GLuint unit, GLuint texture) {
 	}
 	GLint prevUnit = 0;
 	glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
-	GLenum target = mgGetTexTarget(texture);
+	GLenum target = GetTexTarget(texture);
 	glActiveTexture(GL_TEXTURE0 + unit);
 	glBindTexture(target, texture);
 	glActiveTexture(prevUnit);
