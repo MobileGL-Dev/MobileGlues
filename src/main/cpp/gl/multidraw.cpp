@@ -71,10 +71,12 @@ void glMultiDrawElementsBaseVertex(GLenum mode, GLsizei *counts, GLenum type, co
 
 static bool g_indirect_cmds_inited = false;
 static GLsizei g_cmdbufsize = 0;
-GLuint g_indirectbuffer = 0;
+static GLuint g_indirectbuffer = 0;
+static GLuint prevIndirectBuffer = 0;
 
 void prepare_indirect_buffer(const GLsizei *counts, GLenum type, const void *const *indices,
                              GLsizei primcount, const GLint *basevertex) {
+	GLES.glGetIntegerv(GL_DRAW_INDIRECT_BUFFER_BINDING, (GLint*)&prevIndirectBuffer);
     if (!g_indirect_cmds_inited) {
         GLES.glGenBuffers(1, &g_indirectbuffer);
         GLES.glBindBuffer(GL_DRAW_INDIRECT_BUFFER, g_indirectbuffer);
@@ -84,6 +86,7 @@ void prepare_indirect_buffer(const GLsizei *counts, GLenum type, const void *con
 
         g_indirect_cmds_inited = true;
     }
+	GLES.glBindBuffer(GL_DRAW_INDIRECT_BUFFER, g_indirectbuffer);
 
     if (g_cmdbufsize < primcount) {
         size_t sz = g_cmdbufsize;
@@ -230,6 +233,8 @@ void mg_glMultiDrawElementsBaseVertex_indirect(GLenum mode, GLsizei* counts, GLe
         GLES.glDrawElementsIndirect(mode, type, offset);
     }
 
+	GLES.glBindBuffer(GL_DRAW_INDIRECT_BUFFER, prevIndirectBuffer);
+
     CHECK_GL_ERROR
 }
 
@@ -242,6 +247,8 @@ void mg_glMultiDrawElementsBaseVertex_multiindirect(GLenum mode, GLsizei* counts
 
     // Multi-draw indirect!
     GLES.glMultiDrawElementsIndirectEXT(mode, type, 0, primcount, 0);
+
+    GLES.glBindBuffer(GL_DRAW_INDIRECT_BUFFER, prevIndirectBuffer);
 
     CHECK_GL_ERROR
 }
@@ -273,6 +280,8 @@ void mg_glMultiDrawElements_indirect(GLenum mode, const GLsizei *count, GLenum t
         const GLvoid* offset = reinterpret_cast<GLvoid*>(i * sizeof(draw_elements_indirect_command_t));
         GLES.glDrawElementsIndirect(mode, type, offset);
     }
+
+    GLES.glBindBuffer(GL_DRAW_INDIRECT_BUFFER, prevIndirectBuffer);
     CHECK_GL_ERROR
 }
 
@@ -315,6 +324,8 @@ void mg_glMultiDrawElements_multiindirect(GLenum mode, const GLsizei *count, GLe
 
     // Multi-draw indirect!
     GLES.glMultiDrawElementsIndirectEXT(mode, type, 0, primcount, 0);
+
+    GLES.glBindBuffer(GL_DRAW_INDIRECT_BUFFER, prevIndirectBuffer);
 
     CHECK_GL_ERROR
 }

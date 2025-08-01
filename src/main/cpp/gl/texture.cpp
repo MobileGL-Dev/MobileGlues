@@ -24,6 +24,7 @@
 #include "framebuffer.h"
 #include "pixel.h"
 #include <ankerl/unordered_dense.h>
+#include "FSR1/FSR1.h"
 
 #define DEBUG 0
 
@@ -55,12 +56,12 @@ GLenum ConvertTextureTargetToGLEnum(TextureTarget target) {
     case TextureTarget::PROXY_TEXTURE_RECTANGLE: return GL_PROXY_TEXTURE_RECTANGLE;
     case TextureTarget::TEXTURE_CUBE_MAP: return GL_TEXTURE_CUBE_MAP;
     case TextureTarget::PROXY_TEXTURE_CUBE_MAP: return GL_PROXY_TEXTURE_CUBE_MAP;
-    case TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_X: return GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-    case TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_X: return GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
-    case TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_Y: return GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
-    case TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_Y: return GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
-    case TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_Z: return GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
-    case TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_Z: return GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+    // case TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_X: return GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+    // case TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_X: return GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+    // case TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_Y: return GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+    // case TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_Y: return GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+    // case TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_Z: return GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+    // case TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_Z: return GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
     case TextureTarget::TEXTURE_CUBE_MAP_ARRAY: return GL_TEXTURE_CUBE_MAP_ARRAY;
     case TextureTarget::PROXY_TEXTURE_CUBE_MAP_ARRAY: return GL_PROXY_TEXTURE_CUBE_MAP_ARRAY;
     case TextureTarget::TEXTURE_BUFFER: return GL_TEXTURE_BUFFER;
@@ -86,14 +87,14 @@ TextureTarget ConvertGLEnumToTextureTarget(GLenum target) {
     case GL_PROXY_TEXTURE_3D: return TextureTarget::PROXY_TEXTURE_3D;
     case GL_TEXTURE_RECTANGLE: return TextureTarget::TEXTURE_RECTANGLE;
     case GL_PROXY_TEXTURE_RECTANGLE: return TextureTarget::PROXY_TEXTURE_RECTANGLE;
-    case GL_TEXTURE_CUBE_MAP: return TextureTarget::TEXTURE_CUBE_MAP;
     case GL_PROXY_TEXTURE_CUBE_MAP: return TextureTarget::PROXY_TEXTURE_CUBE_MAP;
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_X: return TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_X;
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X: return TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_X;
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y: return TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_Y;
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y: return TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_Y;
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z: return TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_Z;
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z: return TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_Z;
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+    case GL_TEXTURE_CUBE_MAP: return TextureTarget::TEXTURE_CUBE_MAP;
     case GL_TEXTURE_CUBE_MAP_ARRAY: return TextureTarget::TEXTURE_CUBE_MAP_ARRAY;
     case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY: return TextureTarget::PROXY_TEXTURE_CUBE_MAP_ARRAY;
     case GL_TEXTURE_BUFFER: return TextureTarget::TEXTURE_BUFFER;

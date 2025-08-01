@@ -152,7 +152,7 @@ NATIVE_FUNCTION_HEAD(void, glVertexAttrib3fv, GLuint index, const GLfloat *v) NA
 NATIVE_FUNCTION_HEAD(void, glVertexAttrib4f, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w) NATIVE_FUNCTION_END_NO_RETURN(void, glVertexAttrib4f, index,x,y,z,w)
 NATIVE_FUNCTION_HEAD(void, glVertexAttrib4fv, GLuint index, const GLfloat *v) NATIVE_FUNCTION_END_NO_RETURN(void, glVertexAttrib4fv, index,v)
 NATIVE_FUNCTION_HEAD(void, glVertexAttribPointer, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer) NATIVE_FUNCTION_END_NO_RETURN(void, glVertexAttribPointer, index,size,type,normalized,stride,pointer)
-NATIVE_FUNCTION_HEAD(void, glViewport, GLint x, GLint y, GLsizei width, GLsizei height) NATIVE_FUNCTION_END_NO_RETURN(void, glViewport, x,y,width,height)
+//NATIVE_FUNCTION_HEAD(void, glViewport, GLint x, GLint y, GLsizei width, GLsizei height) NATIVE_FUNCTION_END_NO_RETURN(void, glViewport, x,y,width,height)
 //NATIVE_FUNCTION_HEAD(void, glReadBuffer, GLenum src) NATIVE_FUNCTION_END_NO_RETURN(void, glReadBuffer, src)
 NATIVE_FUNCTION_HEAD(void, glDrawRangeElements, GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices) NATIVE_FUNCTION_END_NO_RETURN(void, glDrawRangeElements, mode,start,end,count,type,indices)
 //NATIVE_FUNCTION_HEAD(void, glTexImage3D, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels) NATIVE_FUNCTION_END_NO_RETURN(void, glTexImage3D, target,level,internalformat,width,height,depth,border,format,type,pixels)

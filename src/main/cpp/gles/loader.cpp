@@ -88,9 +88,6 @@ void *open_lib(const char **names, const char *override) {
 
 void load_libs() {
 #ifndef __APPLE__
-    static int first = 1;
-    if (!first) return;
-    first = 0;
     const char *gles_override = global_settings.angle == AngleMode::Enabled ? GLES_ANGLE : nullptr;
     const char *egl_override = global_settings.angle == AngleMode::Enabled ? EGL_ANGLE : nullptr;
     gles = open_lib(gles3_lib, gles_override);

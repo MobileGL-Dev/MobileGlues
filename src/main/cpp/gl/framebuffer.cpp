@@ -5,6 +5,7 @@
 #include "framebuffer.h"
 #include "log.h"
 #include "../config/settings.h"
+#include "FSR1/FSR1.h"
 
 #define DEBUG 0
 
@@ -43,6 +44,15 @@ void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     INIT_CHECK_GL_ERROR
 
     LOG_D("glBindFramebuffer(0x%x, %d)", target, framebuffer)
+
+    if (framebuffer == 0 && target != GL_READ_FRAMEBUFFER) {
+        framebuffer = FSR1_Context::g_renderFBO;
+        FSR1_Context::g_dirty = true;
+    }
+
+    if (target != GL_READ_FRAMEBUFFER) {
+        set_gl_state_current_draw_fbo(framebuffer);
+    }
 
     GLES.glBindFramebuffer(target, framebuffer);
     CHECK_GL_ERROR_NO_INIT

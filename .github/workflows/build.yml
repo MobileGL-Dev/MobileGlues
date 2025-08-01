@@ -4,7 +4,11 @@ jobs:
   build-ios:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
       - name: Build MobileGlues
         run: |
           cd src/main/cpp 
@@ -17,6 +21,7 @@ jobs:
             -DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration
           cmake --build build --config RelWithDebInfo --target mobileglues
           codesign -s - build/libmobileglues.dylib
+
       - name: Upload lib
         uses: actions/upload-artifact@v4
         with:

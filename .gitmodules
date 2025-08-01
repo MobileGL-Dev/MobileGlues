@@ -1,9 +1,9 @@
 [submodule "src/main/cpp/3rdparty/perfetto"]
 	path = src/main/cpp/3rdparty/perfetto
 	url = https://android.googlesource.com/platform/external/perfetto
-[submodule "src/main/cpp/include/glm"]
-	path = src/main/cpp/include/glm
-	url = https://github.com/g-truc/glm.git
 [submodule "src/main/cpp/3rdparty/xxhash"]
 	path = src/main/cpp/3rdparty/xxhash
 	url = https://github.com/stbrumme/xxhash.git
+[submodule "src/main/cpp/3rdparty/glm"]
+	path = src/main/cpp/3rdparty/glm
+	url = https://github.com/g-truc/glm.git

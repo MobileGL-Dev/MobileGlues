@@ -137,6 +137,15 @@ struct Version {
     }
 };
 
+typedef enum class FSR1_Quality_Preset : int { // may be useless
+    Disabled = 0,
+    UltraQuality, // 1
+    Quality,      // 2 
+	Balanced,     // 3
+	Performance,  // 4
+	MaxValue      // 5
+};
+
 struct global_settings_t {
     AngleMode angle;
     IgnoreErrorLevel ignore_error;
@@ -149,6 +158,7 @@ struct global_settings_t {
     multidraw_mode_t multidraw_mode;
     AngleDepthClearFixMode angle_depth_clear_fix_mode;
 	Version custom_gl_version;
+	FSR1_Quality_Preset fsr1_setting;
 };
 
 extern global_settings_t global_settings;

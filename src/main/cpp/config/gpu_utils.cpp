@@ -11,65 +11,128 @@
 #include <EGL/egl.h>
 #include <cstring>
 #include <optional>
-
-static const char *gles3_lib[] = {
-        "libGLESv3_CM",
-        "libGLESv3",
-        nullptr
+typedef const char* cstr;
+static const cstr gles3_lib[] = {
+    "libGLESv3_CM",
+    "libGLESv3",
+    nullptr
 };
-static const char *vk_lib[] = {
-        "libvulkan",
-        nullptr
+static const cstr egl_libs[] = {
+    "libEGL",
+    nullptr
+};
+static const cstr vk_lib[] = {
+    "libvulkan",
+    nullptr
 };
 
+namespace egl_func {
+    PFNEGLGETDISPLAYPROC        eglGetDisplay = nullptr;
+    PFNEGLINITIALIZEPROC        eglInitialize = nullptr;
+    PFNEGLCHOOSECONFIGPROC      eglChooseConfig = nullptr;
+    PFNEGLCREATECONTEXTPROC     eglCreateContext = nullptr;
+    PFNEGLMAKECURRENTPROC       eglMakeCurrent = nullptr;
+    PFNEGLDESTROYCONTEXTPROC    eglDestroyContext = nullptr;
+    PFNEGLTERMINATEPROC         eglTerminate = nullptr;
+}
+
+template <typename T>
+static void* open_lib(const T names[], const char* override) {
+    void* handle = nullptr;
+    int flags = RTLD_LOCAL | RTLD_NOW;
+    if (override) {
+        handle = dlopen(override, flags);
+        if (handle) return handle;
+    }
+    for (int i = 0; names[i]; ++i) {
+        handle = dlopen(names[i], flags);
+        if (handle) break;
+    }
+    return handle;
+}
+
+static bool loadEGLFunctions(void* lib) {
+    if (!lib) return false;
+    egl_func::eglGetDisplay = (PFNEGLGETDISPLAYPROC)dlsym(lib, "eglGetDisplay");
+    egl_func::eglInitialize = (PFNEGLINITIALIZEPROC)dlsym(lib, "eglInitialize");
+    egl_func::eglChooseConfig = (PFNEGLCHOOSECONFIGPROC)dlsym(lib, "eglChooseConfig");
+    egl_func::eglCreateContext = (PFNEGLCREATECONTEXTPROC)dlsym(lib, "eglCreateContext");
+    egl_func::eglMakeCurrent = (PFNEGLMAKECURRENTPROC)dlsym(lib, "eglMakeCurrent");
+    egl_func::eglDestroyContext = (PFNEGLDESTROYCONTEXTPROC)dlsym(lib, "eglDestroyContext");
+    egl_func::eglTerminate = (PFNEGLTERMINATEPROC)dlsym(lib, "eglTerminate");
+
+    return egl_func::eglGetDisplay && egl_func::eglInitialize && egl_func::eglChooseConfig &&
+        egl_func::eglCreateContext && egl_func::eglMakeCurrent &&
+        egl_func::eglDestroyContext && egl_func::eglTerminate;
+}
 
 std::string getGPUInfo() {
-    EGLDisplay eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (eglDisplay == EGL_NO_DISPLAY || eglInitialize(eglDisplay, nullptr, nullptr) != EGL_TRUE)
-        return "";
+    void* egllib = open_lib(egl_libs, nullptr);
+    if (!loadEGLFunctions(egllib)) {
+        if (egllib) dlclose(egllib);
+        return std::string();
+    }
 
-    EGLint egl_attributes[] = {
-            EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8,
-            EGL_ALPHA_SIZE, 8, EGL_DEPTH_SIZE, 24, EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
-            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT, EGL_NONE
+    EGLDisplay display = egl_func::eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (display == EGL_NO_DISPLAY) {
+        egl_func::eglTerminate(display);
+        dlclose(egllib);
+        return std::string();
+    }
+    if (egl_func::eglInitialize(display, nullptr, nullptr) != EGL_TRUE) {
+        egl_func::eglTerminate(display);
+        dlclose(egllib);
+        return std::string();
+    }
+
+    const EGLint attribs[] = {
+        EGL_BLUE_SIZE,   8,
+        EGL_GREEN_SIZE,  8,
+        EGL_RED_SIZE,    8,
+        EGL_ALPHA_SIZE,  8,
+        EGL_DEPTH_SIZE, 24,
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
     };
+    EGLint numConfigs = 0;
+    if (egl_func::eglChooseConfig(display, attribs, nullptr, 0, &numConfigs) != EGL_TRUE || numConfigs == 0) {
+        egl_func::eglTerminate(display);
+        dlclose(egllib);
+        return std::string();
+    }
+    EGLConfig config;
+    egl_func::eglChooseConfig(display, attribs, &config, 1, &numConfigs);
 
-    EGLint num_configs = 0;
-    if (eglChooseConfig(eglDisplay, egl_attributes, nullptr, 0, &num_configs) != EGL_TRUE || num_configs == 0) {
-        eglTerminate(eglDisplay);
-        return "";
+    const EGLint ctxAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
+    EGLContext ctx = egl_func::eglCreateContext(display, config, EGL_NO_CONTEXT, ctxAttribs);
+    if (ctx == EGL_NO_CONTEXT) {
+        egl_func::eglTerminate(display);
+        dlclose(egllib);
+        return std::string();
     }
 
-    EGLConfig eglConfig;
-    eglChooseConfig(eglDisplay, egl_attributes, &eglConfig, 1, &num_configs);
-
-    const EGLint egl_context_attributes[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
-    EGLContext context = eglCreateContext(eglDisplay, eglConfig, EGL_NO_CONTEXT, egl_context_attributes);
-    if (context == EGL_NO_CONTEXT) {
-        eglTerminate(eglDisplay);
-        return "";
+    if (egl_func::eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, ctx) != EGL_TRUE) {
+        egl_func::eglDestroyContext(display, ctx);
+        egl_func::eglTerminate(display);
+        dlclose(egllib);
+        return std::string();
     }
 
-    if (eglMakeCurrent(eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context) != EGL_TRUE) {
-        eglDestroyContext(eglDisplay, context);
-        eglTerminate(eglDisplay);
-        return "";
-    }
-
+    void* glesLib = open_lib(gles3_lib, nullptr);
     std::string renderer;
-    void* lib = open_lib(gles3_lib, nullptr);
-    if (lib) {
-        GLES.glGetString = (const GLubyte * (*)( GLenum ))dlsym(lib, "glGetString");
-        if (GLES.glGetString) {
-            renderer = (const char*)GLES.glGetString(GL_RENDERER);
+    if (glesLib) {
+        auto glGetString = (const GLubyte * (*)(GLenum))dlsym(glesLib, "glGetString");
+        if (glGetString) {
+            renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
         }
+        dlclose(glesLib);
     }
 
-    eglMakeCurrent(eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-    eglDestroyContext(eglDisplay, context);
-    eglTerminate(eglDisplay);
-
-    dlclose(lib);
+    egl_func::eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    egl_func::eglDestroyContext(display, ctx);
+    egl_func::eglTerminate(display);
+    dlclose(egllib);
 
     return renderer;
 }

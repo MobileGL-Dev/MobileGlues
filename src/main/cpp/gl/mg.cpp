@@ -15,6 +15,7 @@ FUNC_GL_STATE_SIZEI(proxy_height)
 FUNC_GL_STATE_ENUM(proxy_intformat)
 FUNC_GL_STATE_UINT(current_program)
 FUNC_GL_STATE_UINT(current_tex_unit)
+FUNC_GL_STATE_UINT(current_draw_fbo)
 
 #ifndef __APPLE__
 FILE* file;
