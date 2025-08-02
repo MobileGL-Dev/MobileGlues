@@ -7,6 +7,7 @@
 #define VERSION_DEVELOPMENT 0
 #define VERSION_ALPHA 1
 #define VERSION_BETA 2
+#define VERSION_RC 3
 #define VERSION_RELEASE 10
 
 #define MAJOR 1
@@ -14,7 +15,11 @@
 #define REVISION 0
 #define PATCH 0
 
-#define VERSION_TYPE VERSION_BETA
+#define VERSION_TYPE VERSION_RC
+
+#if VERSION_TYPE == VERSION_RC
+#define VERSION_RC_NUMBER 1
+#endif
 
 #define VERSION_SUFFIX ""
 
