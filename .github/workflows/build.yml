@@ -1,29 +1,44 @@
-name: Build MobileGlues for iOS
-on: [push, workflow_dispatch]
+name: Build MobileGlues for Android
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
 jobs:
-  build-ios:
-    runs-on: macos-latest
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
+    - uses: actions/checkout@v4
 
-      - name: Build MobileGlues
-        run: |
-          cd src/main/cpp 
-          wget https://github.com/leetal/ios-cmake/raw/master/ios.toolchain.cmake
-          cmake -B build \
-            -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake \
-            -DSTATICLIB=OFF \
-            -DMACOS=ON \
-            -DPLATFORM=OS64 \
-            -DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration
-          cmake --build build --config RelWithDebInfo --target mobileglues
-          codesign -s - build/libmobileglues.dylib
 
-      - name: Upload lib
-        uses: actions/upload-artifact@v4
-        with:
-          name: MobileGlues-iOS-dylib
-          path: /Users/runner/work/MobileGlues/MobileGlues/src/main/cpp/build
+    - name: Configure CMake
+      run: |
+        cd src/main/cpp
+        git clone --depth 1 https://github.com/g-truc/glm.git 3rdparty/glm
+        git clone --depth 1 https://github.com/stbrumme/xxhash.git 3rdparty/xxhash
+        cmake -B build \
+        -DANDROID_ABI=arm64-v8a \
+        -DANDROID_PLATFORM=android-29 \
+        -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake \
+        -DANDROID_TOOLCHAIN=clang
+        
+    - name: Build
+      run: cmake --build src/main/cpp/build --config Release --target mobileglues --parallel $(nproc)
+
+    - name: Strip
+      run: |
+        cd src/main/cpp/build/
+        $ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip libmobileglues.so
+        
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: MobileGlues
+        path: src/main/cpp/build/libmobileglues.so
