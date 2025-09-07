@@ -75,18 +75,6 @@ GLenum ConvertTextureTargetToGLEnum(TextureTarget target) {
         return GL_TEXTURE_CUBE_MAP;
     case TextureTarget::PROXY_TEXTURE_CUBE_MAP:
         return GL_PROXY_TEXTURE_CUBE_MAP;
-    // case TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_X: return
-    // GL_TEXTURE_CUBE_MAP_POSITIVE_X; case
-    // TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_X: return
-    // GL_TEXTURE_CUBE_MAP_NEGATIVE_X; case
-    // TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_Y: return
-    // GL_TEXTURE_CUBE_MAP_POSITIVE_Y; case
-    // TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_Y: return
-    // GL_TEXTURE_CUBE_MAP_NEGATIVE_Y; case
-    // TextureTarget::TEXTURE_CUBE_MAP_POSITIVE_Z: return
-    // GL_TEXTURE_CUBE_MAP_POSITIVE_Z; case
-    // TextureTarget::TEXTURE_CUBE_MAP_NEGATIVE_Z: return
-    // GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
     case TextureTarget::TEXTURE_CUBE_MAP_ARRAY:
         return GL_TEXTURE_CUBE_MAP_ARRAY;
     case TextureTarget::PROXY_TEXTURE_CUBE_MAP_ARRAY:
@@ -165,7 +153,13 @@ public:
 
     void Bind(TextureObject* object) { m_boundObject = object; }
 
-    TextureObject* GetBoundObject() const { return m_boundObject; }
+    TextureObject* GetBoundObject() const {
+        if (!m_boundObject) {
+            LOG_E("TextureBindingSlot: m_boundObject is nullptr!");
+            return nullptr;
+        }
+        return m_boundObject;
+    }
 
     TargetEnum GetTarget() const { return m_target; }
 
@@ -230,21 +224,29 @@ void MarkTextureObjectForDeletion(unsigned texture) {
     }
 
     auto textureObject = BufferObjectsVec[texture];
-    delete textureObject;
-    BufferObjectsVec[texture] = nullptr;
 
+    // Unbind from all slots in all units
     for (auto& unit : TextureUnits) {
-        auto& bindingSlot = unit.GetBindingSlot(textureObject->target);
-        if (bindingSlot.GetBoundObject() == textureObject) {
-            bindingSlot.Bind(nullptr);
+        for (int i = 0; i < (int)TextureTarget::TEXTURES_COUNT; ++i) {
+            auto& bindingSlot = unit.GetBindingSlot((TextureTarget)i);
+            if (bindingSlot.GetBoundObject() == textureObject) {
+                bindingSlot.Bind(nullptr);
+            }
         }
     }
+
+    delete textureObject;
+    BufferObjectsVec[texture] = nullptr;
 }
 
 TextureObject* mgGetTexObjectByTarget(GLenum target) {
-    return GetTextureUnit(GetCurrentTextureUnitIndex())
+    auto* obj = GetTextureUnit(GetCurrentTextureUnitIndex())
         .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
         .GetBoundObject();
+    if (!obj) {
+        LOG_E("mgGetTexObjectByTarget: TextureObject for target %d is nullptr!", target);
+    }
+    return obj;
 }
 
 TextureObject* mgGetTexObjectByID(unsigned texture) {
@@ -510,6 +512,10 @@ void glTexImage1D(GLenum target, GLint level, GLint internalFormat, GLsizei widt
 
     int currentUnitIndex = GetCurrentTextureUnitIndex();
     auto tex = GetTextureUnit(currentUnitIndex).GetBindingSlot(ConvertGLEnumToTextureTarget(target)).GetBoundObject();
+    if (!tex) {
+        LOG_E("glTexImage1D: TextureObject for target %d is nullptr!", target);
+        return;
+    }
     tex->target = ConvertGLEnumToTextureTarget(target);
     tex->depth = 1;
     tex->format = format;
@@ -552,6 +558,10 @@ void glTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei widt
     auto tex = GetTextureUnit(GetCurrentTextureUnitIndex())
                    .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
                    .GetBoundObject();
+    if (!tex) {
+        LOG_E("glTexImage2D: TextureObject for target %d is nullptr!", target);
+        return;
+    }
     tex->target = ConvertGLEnumToTextureTarget(target);
     tex->internal_format = internalFormat;
     tex->width = width;
@@ -621,6 +631,10 @@ void glTexImage3D(GLenum target, GLint level, GLint internalFormat, GLsizei widt
     auto tex = GetTextureUnit(GetCurrentTextureUnitIndex())
                    .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
                    .GetBoundObject();
+    if (!tex) {
+        LOG_E("glTexImage3D: TextureObject for target %d is nullptr!", target);
+        return;
+    }
     tex->target = ConvertGLEnumToTextureTarget(target);
     tex->internal_format = internalFormat;
     tex->width = width;
@@ -644,6 +658,10 @@ void glTexStorage1D(GLenum target, GLsizei levels, GLenum internalFormat, GLsize
     auto tex = GetTextureUnit(GetCurrentTextureUnitIndex())
                    .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
                    .GetBoundObject();
+    if (!tex) {
+        LOG_E("glTexStorage1D: TextureObject for target %d is nullptr!", target);
+        return;
+    }
     tex->target = ConvertGLEnumToTextureTarget(target);
     tex->internal_format = internalFormat;
     tex->width = width;
@@ -669,6 +687,10 @@ void glTexStorage2D(GLenum target, GLsizei levels, GLenum internalFormat, GLsize
     auto tex = GetTextureUnit(GetCurrentTextureUnitIndex())
                    .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
                    .GetBoundObject();
+    if (!tex) {
+        LOG_E("glTexStorage2D: TextureObject for target %d is nullptr!", target);
+        return;
+    }
     tex->target = ConvertGLEnumToTextureTarget(target);
     tex->internal_format = internalFormat;
     tex->width = width;
@@ -697,6 +719,10 @@ void glTexStorage3D(GLenum target, GLsizei levels, GLenum internalFormat, GLsize
     auto tex = GetTextureUnit(GetCurrentTextureUnitIndex())
                    .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
                    .GetBoundObject();
+    if (!tex) {
+        LOG_E("glTexStorage3D: TextureObject for target %d is nullptr!", target);
+        return;
+    }
     tex->target = ConvertGLEnumToTextureTarget(target);
     tex->internal_format = internalFormat;
     tex->width = width;
@@ -721,6 +747,10 @@ void glCopyTexImage1D(GLenum target, GLint level, GLenum internalFormat, GLint x
     auto tex = GetTextureUnit(GetCurrentTextureUnitIndex())
                    .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
                    .GetBoundObject();
+    if (!tex) {
+        LOG_E("glCopyTexImage1D: TextureObject for target %d is nullptr!", target);
+        return;
+    }
     tex->target = ConvertGLEnumToTextureTarget(target);
     tex->internal_format = internalFormat;
     tex->width = width;
@@ -821,6 +851,10 @@ void glCopyTexImage2D(GLenum target, GLint level, GLenum internalFormat, GLint x
     auto tex = GetTextureUnit(GetCurrentTextureUnitIndex())
                    .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
                    .GetBoundObject();
+    if (!tex) {
+        LOG_E("glCopyTexImage2D: TextureObject for target %d is nullptr!", target);
+        return;
+    }
     tex->target = ConvertGLEnumToTextureTarget(target);
     tex->internal_format = internalFormat;
     tex->width = width;
@@ -996,10 +1030,14 @@ void glTexParameteriv(GLenum target, GLenum pname, const GLint* params) {
             auto tex = GetTextureUnit(GetCurrentTextureUnitIndex())
                            .GetBindingSlot(ConvertGLEnumToTextureTarget(target))
                            .GetBoundObject();
-            tex->swizzle_param[0] = params[0];
-            tex->swizzle_param[1] = params[1];
-            tex->swizzle_param[2] = params[2];
-            tex->swizzle_param[3] = params[3];
+            if (tex) {
+                tex->swizzle_param[0] = params[0];
+                tex->swizzle_param[1] = params[1];
+                tex->swizzle_param[2] = params[2];
+                tex->swizzle_param[3] = params[3];
+            } else {
+                LOG_E("glTexParameteriv: TextureObject for target %d is nullptr!", target);
+            }
         } else {
             LOG_E("glTexParameteriv: params is nullptr for GL_TEXTURE_SWIZZLE_RGBA")
         }
