@@ -1,57 +1,17 @@
-# MobileGlues
+# DesktopGlues
 
-**MobileGlues**, which stands for "(on) Mobile, GL uses ES", is a GL implementation running on top of host OpenGL ES 3.x (best on 3.2, minimum 3.0), with running Minecraft: Java Edition in mind.
+DesktopGlues，取「(on) Desktop, GL uses ES」之意，是基于 MobileGlues(https://github.com/MobileGL-Dev/MobileGlues) 深度优化的桌面端（bushi） GL 实现
 
-# For Shader Developers
 
-1. MobileGlues automatically:
-   - Converts desktop GLSL → GLSL ES
-   - Removes `layout(binding)` syntax
-   - Handles version directives
-   - Always declare precision explicitly:
-     ```glsl
-     precision highp float;
-     precision highp int;
-     ```
+## License
 
-2. MobileGlues (since V1.2.6) injects these macros into your shaders:
-   ```glsl
-   #define MG_MOBILEGLUES                   // Indicates MobileGlues environment
-   #define MG_MOBILEGLUES_VERSION 1260      // Version number (e.g. 1260 = V1.2.6)
-   ```
+DesktopGlues 延续 MobileGlues 的开源协议，采用 GNU LGPL-2.1 License。
 
-   Use these macros for platform-specific logic:
-   ```glsl
-   #ifdef MG_MOBILEGLUES
-       #if MG_MOBILEGLUES_VERSION >= 1270
-           // Logic for MobileGlues (version >= V1.2.7)
-       #else
-           // Logic for MobileGlues (version < V1.2.7)
-       #endif
-   #else
-       // ...
-   #endif
-   ```
+详见 "LICENSE" (https://github.com/MobileGL-Dev/MobileGlues/blob/main/LICENSE)
 
-3. If encountering issues:
-   - Enable `Ignore shader/program error`, and check the logs (located at `/sdcard/MG/latest.log`).
+## Third party components
 
-# License
 
-MobileGlues is licensed under **GNU LGPL-2.1 License**.
+SPIRV-Cross（KhronosGroup，Apache 2.0）、glslang（KhronosGroup，多协议）、GlslOptimizerV2（aiekick，Apache 2.0）、cJSON（DaveGamble，MIT）、GLM（G-Truc Creation，The Happy Bunny License）、FidelityFX-FSR（AMD，MIT）。
 
-Please see [LICENSE](https://github.com/MobileGL-Dev/MobileGlues/blob/main/LICENSE).
-
-# Third party components
-
-**SPIRV-Cross** by **KhronosGroup** - [Apache License 2.0](https://github.com/KhronosGroup/SPIRV-Cross/blob/master/LICENSE): [github](https://github.com/KhronosGroup/SPIRV-Cross)
-
-**glslang** by **KhronosGroup** - [Various Licenses](https://github.com/KhronosGroup/glslang/blob/main/LICENSE.txt): [github](https://github.com/KhronosGroup/glslang)
-
-**GlslOptimizerV2** by **aiekick** - [Apache License 2.0](https://github.com/aiekick/GlslOptimizerV2/blob/master/LICENSE): [github](https://github.com/aiekick/GlslOptimizerV2)
-
-**cJSON** by **DaveGamble** - [MIT License](https://github.com/DaveGamble/cJSON/blob/master/LICENSE): [github](https://github.com/DaveGamble/cJSON)
-
-**OpenGL Mathematics (*GLM*)** by **G-Truc Creation** - [The Happy Bunny License](https://github.com/g-truc/glm/blob/master/copying.txt): [github](https://github.com/g-truc/glm)
-
-**FidelityFX-FSR** by **AMD** - [MIT License](https://github.com/GPUOpen-Effects/FidelityFX-FSR/blob/master/license.txt): [github](https://github.com/GPUOpen-Effects/FidelityFX-FSR) 
+依赖详情可参考 "MobileGlues 第三方组件说明" (原链接)。

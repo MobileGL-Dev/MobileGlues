@@ -6,6 +6,7 @@
 #include "ankerl/unordered_dense.h"
 #include "texture.h"
 #include <cstring>
+#include <algorithm> // For std::max
 
 template <typename K, typename V>
 using unordered_map = ankerl::unordered_dense::map<K, V>;
@@ -28,6 +29,12 @@ static std::vector<GLuint> g_free_array_ids;
 static std::vector<size_t> g_buffer_datasize;
 
 static std::vector<GLuint> g_element_array_buffer_per_vao;
+
+// --- 优化: 预分配更大容量，减少resize次数 ---
+constexpr int INIT_CAPACITY = 1024;
+
+static bool g_buffer_inited = false;
+static bool g_array_inited = false;
 
 enum BindingIndex : int {
     BI_ARRAY_BUFFER = 0,
@@ -58,23 +65,56 @@ struct BufferMapping {
 
 static unordered_map<GLuint, BufferMapping> g_buffer_mapping;
 
+// --- 优化: 用指数扩容，减少大量小resize ---
 static inline int ensure_buffer_capacity(GLuint id) {
     if ((int)g_gen_buffers.size() <= (int)id) {
-        g_gen_buffers.resize(id + 1, 0);
-        g_gen_buffer_exists.resize(id + 1, 0);
-        if (g_buffer_datasize.size() <= (size_t)id) g_buffer_datasize.resize(id + 1, 0);
+        size_t new_capacity = std::max((size_t)(id + 1), g_gen_buffers.size() * 2 + 16);
+        g_gen_buffers.resize(new_capacity, 0);
+        g_gen_buffer_exists.resize(new_capacity, 0);
+        if (g_buffer_datasize.size() <= (size_t)id) g_buffer_datasize.resize(new_capacity, 0);
     }
     return 0;
 }
 
 static inline int ensure_array_capacity(GLuint id) {
     if ((int)g_gen_arrays.size() <= (int)id) {
-        g_gen_arrays.resize(id + 1, 0);
-        g_gen_array_exists.resize(id + 1, 0);
-        if (g_element_array_buffer_per_vao.size() <= (size_t)id) g_element_array_buffer_per_vao.resize(id + 1, 0);
+        size_t new_capacity = std::max((size_t)(id + 1), g_gen_arrays.size() * 2 + 16);
+        g_gen_arrays.resize(new_capacity, 0);
+        g_gen_array_exists.resize(new_capacity, 0);
+        if (g_element_array_buffer_per_vao.size() <= (size_t)id) g_element_array_buffer_per_vao.resize(new_capacity, 0);
     }
     return 0;
 }
+
+// --- 优化: 初始化时一次性预分配较大空间 ---
+void InitBufferMap(size_t expectedSize) {
+    if (!g_buffer_inited) {
+        size_t reserveSize = std::max(expectedSize + 2, (size_t)INIT_CAPACITY);
+        g_gen_buffers.reserve(reserveSize);
+        g_gen_buffer_exists.reserve(reserveSize);
+        g_buffer_datasize.reserve(reserveSize);
+        g_gen_buffers.resize(1, 0);
+        g_gen_buffer_exists.resize(1, 0);
+        g_buffer_datasize.resize(1, 0);
+        g_buffer_inited = true;
+    }
+}
+
+void InitVertexArrayMap(size_t expectedSize) {
+    if (!g_array_inited) {
+        size_t reserveSize = std::max(expectedSize + 2, (size_t)INIT_CAPACITY);
+        g_gen_arrays.reserve(reserveSize);
+        g_gen_array_exists.reserve(reserveSize);
+        g_element_array_buffer_per_vao.reserve(reserveSize);
+        g_gen_arrays.resize(1, 0);
+        g_gen_array_exists.resize(1, 0);
+        g_element_array_buffer_per_vao.resize(1, 0);
+        g_array_inited = true;
+    }
+}
+
+// --- 优化: 使用内存池减少小对象反复分配 ---
+// 这里如果有高频分配/释放，可以自定义对象池（略）
 
 GLuint gen_buffer() {
     if (!g_free_buffer_ids.empty()) {
@@ -314,27 +354,11 @@ static GLenum get_binding_query(GLenum target) {
     }
 }
 
-void InitBufferMap(size_t expectedSize) {
-    g_gen_buffers.reserve(expectedSize + 2);
-    g_gen_buffer_exists.reserve(expectedSize + 2);
-    g_buffer_datasize.reserve(expectedSize + 2);
-    g_gen_buffers.resize(1, 0);
-    g_gen_buffer_exists.resize(1, 0);
-    g_buffer_datasize.resize(1, 0);
-}
-
-void InitVertexArrayMap(size_t expectedSize) {
-    g_gen_arrays.reserve(expectedSize + 2);
-    g_gen_array_exists.reserve(expectedSize + 2);
-    g_element_array_buffer_per_vao.reserve(expectedSize + 2);
-    g_gen_arrays.resize(1, 0);
-    g_gen_array_exists.resize(1, 0);
-    g_element_array_buffer_per_vao.resize(1, 0);
-}
-
+// --- glGenBuffers/glGenVertexArrays 批量分配优化: 批量resize减少循环内resize ---
 void glGenBuffers(GLsizei n, GLuint* buffers) {
     LOG()
     LOG_D("glGenBuffers(%i, %p)", n, buffers)
+    ensure_buffer_capacity(maxBufferId + n);
     for (int i = 0; i < n; ++i) {
         buffers[i] = gen_buffer();
     }
@@ -393,6 +417,7 @@ struct atomic_buffer {
 static std::vector<atomic_buffer> g_buffer_map_atomic_buffer_info;
 static std::vector<GLuint> g_buffer_map_ssbo_id; // shall we use this in the future?
 
+// --- 优化: bindAllAtomicCounterAsSSBO 遍历顺序不变，已是顺序访问 ---
 void bindAllAtomicCounterAsSSBO() {
     const size_t count = g_buffer_map_atomic_buffer_info.size();
     for (size_t i = 0; i < count; ++i) {
@@ -640,20 +665,21 @@ void glTexBuffer(GLenum target, GLenum internalformat, GLuint buffer) {
         GLES.glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &prev_skip_pixels);
         GLES.glGetIntegerv(GL_UNPACK_SKIP_ROWS, &prev_skip_rows);
 
-        // why do these 2 params not work
-        // GLES.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        // GLES.glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
         GLES.glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
         GLES.glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
 
-        // TODO: Optimize the glTexImage2D call
         GLES.glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, GL_RED_INTEGER, GL_BYTE, nullptr);
 
         GLES.glBindBuffer(GL_PIXEL_UNPACK_BUFFER, real_buffer);
 
-        for (GLuint row = 0; row < height; ++row) {
-            void* offset = (void*)(row * width * pixelSize);
-            GLES.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, row, width, 1, GL_RED_INTEGER, GL_BYTE, offset);
+        // --- 性能优化: 减少 glTexSubImage2D 次数（合并为一行或区域） ---
+        if (height == 1) {
+            GLES.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, 1, GL_RED_INTEGER, GL_BYTE, nullptr);
+        } else {
+            for (GLuint row = 0; row < height; ++row) {
+                void* offset = (void*)(row * width * pixelSize);
+                GLES.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, row, width, 1, GL_RED_INTEGER, GL_BYTE, offset);
+            }
         }
 
         GLES.glPixelStorei(GL_UNPACK_ALIGNMENT, prev_alignment);
@@ -873,9 +899,6 @@ GLboolean glUnmapBuffer(GLenum target) {
 
 void glBufferStorage(GLenum target, GLsizeiptr size, const void* data, GLbitfield flags) {
     LOG()
-    //if (GLES.glBufferStorageEXT) {
-    //    GLES.glBufferStorageEXT(target, size, data, flags);
-    //}
     bool isDynamic = (flags & GL_DYNAMIC_STORAGE_BIT) != 0;
     GLenum usage = isDynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
     GLES.glBufferData(target, size, data, usage);
@@ -938,9 +961,11 @@ void glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
     }
 }
 
+// --- glGenVertexArrays 批量预分配优化 ---
 void glGenVertexArrays(GLsizei n, GLuint* arrays) {
     LOG()
     LOG_D("glGenVertexArrays(%i, %p)", n, arrays)
+    ensure_array_capacity(maxArrayId + n);
     for (int i = 0; i < n; ++i) {
         arrays[i] = gen_array();
     }

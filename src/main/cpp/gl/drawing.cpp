@@ -8,6 +8,8 @@
 #include "mg.h"
 #include "texture.h"
 #include <ankerl/unordered_dense.h>
+#include <vector>
+#include <memory>
 
 #define DEBUG 0
 
@@ -21,26 +23,44 @@ std::string bufSampelerName;
 extern std::unordered_map<GLuint, bool> program_map_is_sampler_buffer_emulated;
 extern std::unordered_map<GLuint, bool> program_map_is_atomic_counter_emulated;
 
+// 优化1：为 SamplerInfo 的 uniform location 查找和采样器查找增加缓存，避免重复查询
+struct UniformLocationCache {
+    unordered_map<GLuint, GLint> widthLoc;
+    unordered_map<GLuint, GLint> heightLoc;
+    unordered_map<GLuint, std::vector<GLint>> samplerLocs;
+};
+static UniformLocationCache g_uniformCache;
+
 unordered_map<GLuint, SamplerInfo> g_samplerCacheForSamplerBuffer;
+
+// 优化2：线程局部索引缓冲区，减少 malloc/free 频率
+static thread_local std::unique_ptr<std::vector<uint8_t>> g_tempIndexBuffer;
 
 void setupBufferTextureUniforms(GLuint program) {
     LOG_D("setupBufferTextureUniforms, program: %d", program);
 
     if (!program_map_is_sampler_buffer_emulated[program]) return;
 
-    if (g_samplerCacheForSamplerBuffer.find(program) == g_samplerCacheForSamplerBuffer.end()) {
-        auto& progSamplerInfo = g_samplerCacheForSamplerBuffer[program];
-        GLint locWidth = GLES.glGetUniformLocation(program, "u_BufferTexWidth");
-        GLint locHeight = GLES.glGetUniformLocation(program, "u_BufferTexHeight");
+    // 缓存 uniform location 和 sampler location
+    GLint locWidth = -2, locHeight = -2;
+    auto widthIt = g_uniformCache.widthLoc.find(program);
+    auto heightIt = g_uniformCache.heightLoc.find(program);
+    if (widthIt != g_uniformCache.widthLoc.end()) locWidth = widthIt->second;
+    if (heightIt != g_uniformCache.heightLoc.end()) locHeight = heightIt->second;
+
+    auto& samplerLocs = g_uniformCache.samplerLocs[program];
+
+    if (locWidth == -2 || locHeight == -2 || samplerLocs.empty()) {
+        locWidth = GLES.glGetUniformLocation(program, "u_BufferTexWidth");
+        locHeight = GLES.glGetUniformLocation(program, "u_BufferTexHeight");
         if (locWidth == -1) {
             LOG_W("u_BufferTexWidth uniform not found in program %d", program);
             return;
         }
+        g_uniformCache.widthLoc[program] = locWidth;
+        g_uniformCache.heightLoc[program] = locHeight;
 
-        progSamplerInfo.locHeight = locHeight;
-        progSamplerInfo.locWidth = locWidth;
-        progSamplerInfo.samplers.clear();
-
+        samplerLocs.clear();
         GLint numUniforms = 0;
         GLES.glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &numUniforms);
         LOG_D("Program %d has %d active uniforms", program, numUniforms);
@@ -55,23 +75,16 @@ void setupBufferTextureUniforms(GLuint program) {
 
             if (type == GL_SAMPLER_2D || type == GL_INT_SAMPLER_2D) {
                 GLint locSampler = GLES.glGetUniformLocation(program, name);
-                progSamplerInfo.samplers.push_back(locSampler);
+                if (locSampler >= 0) samplerLocs.push_back(locSampler);
             }
         }
     }
 
-    auto& progSamplerInfo = g_samplerCacheForSamplerBuffer[program];
-
-    GLint locWidth = progSamplerInfo.locWidth;
-    GLint locHeight = progSamplerInfo.locHeight;
-
-    for (auto locSampler : progSamplerInfo.samplers) {
-        if (locSampler < 0) {
-            continue;
-        }
+    for (auto locSampler : samplerLocs) {
+        if (locSampler < 0) continue;
 
         GLuint prev_unit = gl_state->current_tex_unit;
-        const GLint unit = 15;
+        constexpr GLint unit = 15;
 
         GLES.glActiveTexture(GL_TEXTURE0 + unit);
         GLint texId = 0;
@@ -189,10 +202,10 @@ void glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const voi
             return;
         }
 
-        void* tempIndices = malloc(count * indexSize);
-        if (!tempIndices) {
-            return;
-        }
+        // 优化：线程局部缓冲区
+        if (!g_tempIndexBuffer) g_tempIndexBuffer = std::make_unique<std::vector<uint8_t>>();
+        g_tempIndexBuffer->resize(count * indexSize);
+        void* tempIndices = g_tempIndexBuffer->data();
 
         if (prevElementBuffer != 0) {
             GLES.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, prevElementBuffer);
@@ -203,36 +216,35 @@ void glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const voi
                 memcpy(tempIndices, srcData, count * indexSize);
                 GLES.glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
             } else {
-                free(tempIndices);
                 return;
             }
         } else {
             memcpy(tempIndices, indices, count * indexSize);
         }
 
+        // 用指针减少分支
         switch (type) {
-        case GL_UNSIGNED_INT:
-            for (int j = 0; j < count; ++j) {
-                ((GLuint*)tempIndices)[j] += basevertex;
-            }
+        case GL_UNSIGNED_INT: {
+            auto p = reinterpret_cast<GLuint*>(tempIndices);
+            for (int j = 0; j < count; ++j) p[j] += basevertex;
             break;
-        case GL_UNSIGNED_SHORT:
-            for (int j = 0; j < count; ++j) {
-                ((GLushort*)tempIndices)[j] += basevertex;
-            }
+        }
+        case GL_UNSIGNED_SHORT: {
+            auto p = reinterpret_cast<GLushort*>(tempIndices);
+            for (int j = 0; j < count; ++j) p[j] += basevertex;
             break;
-        case GL_UNSIGNED_BYTE:
-            for (int j = 0; j < count; ++j) {
-                ((GLubyte*)tempIndices)[j] += basevertex;
-            }
+        }
+        case GL_UNSIGNED_BYTE: {
+            auto p = reinterpret_cast<GLubyte*>(tempIndices);
+            for (int j = 0; j < count; ++j) p[j] += basevertex;
             break;
+        }
         }
 
         GLuint tempBuffer;
         GLES.glGenBuffers(1, &tempBuffer);
         GLES.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tempBuffer);
         GLES.glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * indexSize, tempIndices, GL_STREAM_DRAW);
-        free(tempIndices);
 
         GLES.glDrawElements(mode, count, type, 0);
 
