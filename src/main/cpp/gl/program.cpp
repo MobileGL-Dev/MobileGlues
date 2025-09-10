@@ -147,7 +147,7 @@ void glAttachShader(GLuint program, GLuint shader) {
         program_map_is_sampler_buffer_emulated[program] = true;
     if (shader_map_is_atomic_counter_emulated[shader]) {
         program_map_is_atomic_counter_emulated[program] = true;
-		LOG_D("Shader %d is atomic counter emulated, setting program %d to atomic counter emulated", shader, program)
+                LOG_D("Shader %d is atomic counter emulated, setting program %d to atomic counter emulated", shader, program)
     }
 
     GLES.glAttachShader(program, shader);
