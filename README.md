@@ -3,8 +3,8 @@
 DesktopGlues，取「(on) Desktop, GL uses ES」之意，是基于 MobileGlues(https://github.com/MobileGL-Dev/MobileGlues) 深度优化的桌面端（bushi） GL 实现
 
 <details>
-<summary>** 目前版本 **</summary>
-` V1.0.2·Dev `
+<summary> 目前版本 </summary>
+ V1.0.2
 </details>
 
 ## License
