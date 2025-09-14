@@ -1,5 +1,6 @@
 name: Build MobileGlues for iOS
-on: [push, workflow_dispatch]
+on: 
+   workflow_dispatch:
 jobs:
   build-ios:
     runs-on: macos-latest
