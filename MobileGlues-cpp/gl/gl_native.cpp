@@ -57,7 +57,6 @@ NATIVE_FUNCTION_HEAD(void, glDisable, GLenum cap) NATIVE_FUNCTION_END_NO_RETURN(
 NATIVE_FUNCTION_HEAD(void, glDisableVertexAttribArray, GLuint index) NATIVE_FUNCTION_END_NO_RETURN(void, glDisableVertexAttribArray, index)
 NATIVE_FUNCTION_HEAD(void, glDrawArrays, GLenum mode, GLint first, GLsizei count) NATIVE_FUNCTION_END_NO_RETURN(void, glDrawArrays, mode,first,count)
 //NATIVE_FUNCTION_HEAD(void, glDrawElements, GLenum mode, GLsizei count, GLenum type, const void *indices) NATIVE_FUNCTION_END_NO_RETURN(void, glDrawElements, mode,count,type,indices)
-NATIVE_FUNCTION_HEAD(void, glEnable, GLenum cap) NATIVE_FUNCTION_END_NO_RETURN(void, glEnable, cap)
 NATIVE_FUNCTION_HEAD(void, glEnableVertexAttribArray, GLuint index) NATIVE_FUNCTION_END_NO_RETURN(void, glEnableVertexAttribArray, index)
 NATIVE_FUNCTION_HEAD(void, glFinish) NATIVE_FUNCTION_END_NO_RETURN(void, glFinish)
 NATIVE_FUNCTION_HEAD(void, glFlush) NATIVE_FUNCTION_END_NO_RETURN(void, glFlush)
@@ -371,3 +370,23 @@ NATIVE_FUNCTION_HEAD(void, glGetSamplerParameterIuiv, GLuint sampler, GLenum pna
 //NATIVE_FUNCTION_HEAD(void, glTexBufferRange, GLenum target, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size) NATIVE_FUNCTION_END_NO_RETURN(void, glTexBufferRange, target,internalformat,buffer,offset,size)
 NATIVE_FUNCTION_HEAD(void, glTexStorage3DMultisample, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations) NATIVE_FUNCTION_END_NO_RETURN(void, glTexStorage3DMultisample, target,samples,internalformat,width,height,depth,fixedsamplelocations)
 //NATIVE_FUNCTION_HEAD(void*, glMapBufferRange, GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access) NATIVE_FUNCTION_END(void*, glMapBufferRange, target,offset,length,access)
+
+// Jank, needed for 26.3-snapshot4+ as it deliberately calls GL_PROGRAM_POINT_SIZE and
+// GL_TEXTURE_CUBE_MAP_SEAMLESS in Minecraft code
+NATIVE_FUNCTION_HEAD(void, glEnable, GLenum cap)
+    LOG_D("Use native function: %s @ %s(...)", RENDERERNAME, __FUNCTION__)
+    switch (cap) {
+        case GL_PROGRAM_POINT_SIZE:
+        case GL_TEXTURE_CUBE_MAP_SEAMLESS:
+        case GL_FRAMEBUFFER_SRGB:
+        case GL_SAMPLE_SHADING:
+        case GL_DEBUG_OUTPUT:
+        case GL_DEBUG_OUTPUT_SYNCHRONOUS:
+            LOG_D("Desktop GLenum passed, ignoring call %s(%s)", __FUNCTION__, glEnumToString(cap))
+            return;
+        default:
+            break;
+    }
+    GLES.glEnable(cap);
+    CHECK_GL_ERROR
+}

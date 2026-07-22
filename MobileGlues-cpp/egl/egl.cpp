@@ -63,7 +63,24 @@ extern "C"
               "%d, num_config: %p",
               dpy, attrib_list, configs, config_size, num_config);
         LOAD_EGL(eglChooseConfig)
-        return egl_eglChooseConfig(dpy, attrib_list, configs, config_size, num_config);
+        EGLint attribs[64];
+        if (attrib_list) {
+            LOG_D("attrib_list:")
+            int i = 0;
+            while (attrib_list[i] != EGL_NONE) {
+                attribs[i]     = attrib_list[i];
+                attribs[i + 1] = attrib_list[i + 1];
+                if (attribs[i] == EGL_RENDERABLE_TYPE)
+                    attribs[i + 1] = EGL_OPENGL_ES3_BIT;
+                LOG_D("  attr=0x%04X value=%d", attribs[i], attribs[i+1]);
+                i += 2;
+            }
+            attribs[i] = EGL_NONE;
+            LOG_D("  EGL_NONE");
+        } else {
+            LOG_D("attrib_list = NULL");
+        }
+        return egl_eglChooseConfig(dpy, attribs, configs, config_size, num_config);
     }
 
     EGL_API EGLBoolean eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint* value) {
@@ -76,6 +93,19 @@ extern "C"
                                               const EGLint* attrib_list) {
         LOG_D("eglCreateWindowSurface, dpy: %p, config: %p, win: %p, attrib_list: %p", dpy, config, win, attrib_list);
         LOAD_EGL(eglCreateWindowSurface)
+        EGLint attribs[64];
+        if (attrib_list) {
+            LOG_D("attrib_list:")
+            int i = 0;
+            while (attrib_list[i] != EGL_NONE) {
+                LOG_D("  attr=0x%04X value=%d", attribs[i], attribs[i+1]);
+                i += 2;
+            }
+            attribs[i] = EGL_NONE;
+            LOG_D("  EGL_NONE");
+        } else {
+            LOG_D("attrib_list = NULL");
+        }
         return egl_eglCreateWindowSurface(dpy, config, win, attrib_list);
     }
 
@@ -107,6 +137,7 @@ extern "C"
     }
 
     EGL_API EGLBoolean eglBindAPI(EGLenum api) {
+        api = EGL_OPENGL_ES_API;
         LOG_D("eglBindAPI, api: %d", api);
         LOAD_EGL(eglBindAPI)
         return egl_eglBindAPI(api);
@@ -169,7 +200,11 @@ extern "C"
               "attrib_list: %p",
               dpy, config, share_context, attrib_list);
         LOAD_EGL(eglCreateContext)
-        return egl_eglCreateContext(dpy, config, share_context, attrib_list);
+        EGLint contextAttribs[] = {
+                EGL_CONTEXT_CLIENT_VERSION, 3,
+                EGL_NONE
+        };
+        return egl_eglCreateContext(dpy, config, share_context, contextAttribs);
     }
 
     EGL_API EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx) {
