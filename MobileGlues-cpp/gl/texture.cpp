@@ -268,8 +268,11 @@ void internal_convert(GLenum* internal_format, GLenum* type, GLenum* format) {
         if (type) *type = GL_UNSIGNED_INT;
         break;
     case GL_DEPTH_COMPONENT32:
-        *internal_format = GL_DEPTH_COMPONENT;
-        if (type) *type = GL_UNSIGNED_INT;
+        // Legacy desktop-GL 32-bit UNORM depth has no GLES equivalent, and the
+        // unsized GL_DEPTH_COMPONENT fallback is rejected by glTexStorage2D
+        // (sized formats required). Promote to DEPTH_COMPONENT32F instead.
+        *internal_format = GL_DEPTH_COMPONENT32F;
+        if (type) *type = GL_FLOAT;
         break;
     case GL_DEPTH_COMPONENT32F:
         if (type) *type = GL_FLOAT;
@@ -738,6 +741,7 @@ static int is_depth_format(GLenum format) {
     case GL_DEPTH_COMPONENT:
     case GL_DEPTH_COMPONENT16:
     case GL_DEPTH_COMPONENT24:
+    case GL_DEPTH_COMPONENT32:
     case GL_DEPTH_COMPONENT32F:
         return 1;
     default:
