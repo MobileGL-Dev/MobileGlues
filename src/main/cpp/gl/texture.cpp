@@ -616,16 +616,20 @@ void glGetTexLevelParameterfv(GLenum target, GLint level,GLenum pname, GLfloat *
     LOG_D("glGetTexLevelParameterfv,target: %d, level: %d, pname: %d",target,level,pname)
     GLenum rtarget = map_tex_target(target);
     if (rtarget==GL_PROXY_TEXTURE_2D) {
+        // A proxy query is answered entirely from the shadow state: ES has no
+        // proxy targets, so forwarding one is at best GL_INVALID_ENUM (native
+        // Adreno) and at worst a null texture-binding deref (ANGLE crashes in
+        // GL_GetTexLevelParameteriv, killing MC 26.2's getMaxSupportedTextureSize).
         switch (pname) {
             case GL_TEXTURE_WIDTH:
                 (*params) = (float)nlevel(gl_state->proxy_width, level);
-                break;
+                return;
             case GL_TEXTURE_HEIGHT:
                 (*params) = (float)nlevel(gl_state->proxy_height, level);
-                break;
+                return;
             case GL_TEXTURE_INTERNAL_FORMAT:
                 (*params) = (float)gl_state->proxy_intformat;
-                break;
+                return;
             default:
                 return;
         }
@@ -640,16 +644,17 @@ void glGetTexLevelParameteriv(GLenum target, GLint level,GLenum pname, GLint *pa
     LOG_D("glGetTexLevelParameteriv,target: %s, level: %d, pname: %s",glEnumToString(target),level,glEnumToString(pname))
     GLenum rtarget = map_tex_target(target);
     if (rtarget==GL_PROXY_TEXTURE_2D) {
+        // See glGetTexLevelParameterfv: a proxy query never reaches ES.
         switch (pname) {
             case GL_TEXTURE_WIDTH:
                 (*params) = nlevel(gl_state->proxy_width, level);
-                break;
+                return;
             case GL_TEXTURE_HEIGHT:
                 (*params) = nlevel(gl_state->proxy_height, level);
-                break;
+                return;
             case GL_TEXTURE_INTERNAL_FORMAT:
                 (*params) = (GLint)gl_state->proxy_intformat;
-                break;
+                return;
             default:
                 return;
         }
