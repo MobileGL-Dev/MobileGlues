@@ -55,7 +55,13 @@ void* glXGetProcAddress(const char* name) {
     LOG()
     std::string real_func_name = handle_multidraw_func_name(std::string(name));
 #ifdef __APPLE__
-    return dlsym((void*)(~(uintptr_t)0), real_func_name.c_str());
+    // (void*)~0 is RTLD_NEXT on Darwin: "search images AFTER the caller",
+    // which skips libmobileglues itself and hands the app raw ANGLE entry
+    // points, bypassing every GL translation wrapper. RTLD_SELF starts the
+    // search in this image so the exported wrappers win; the internal GLES
+    // backend table still resolves through to ANGLE (gles/loader.cpp), so
+    // wrapper -> ANGLE calls do not recurse.
+    return dlsym(RTLD_SELF, real_func_name.c_str());
 #else
 
     void* proc = nullptr;
