@@ -70,7 +70,7 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MATCHES "AppleClang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT CMAKE_CXX_COMPILER_ID MATCHES "AppleClang")
     add_compile_options(-O3 -ffunction-sections -fdata-sections)
     add_link_options(-Wl,--gc-sections)
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
@@ -138,7 +138,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
     spirv-cross-c
 )
 
-if (NOT MSVC)
+if (NOT MSVC AND NOT APPLE)
     # Calls between this library's own translation units must land in this
     # library. Without this, an internal call to an exported gl* symbol goes
     # through a preemptible PLT slot, and in an Android app process the system
@@ -149,6 +149,8 @@ if (NOT MSVC)
     # calls bind to changes. On the target, not in the AppleClang-guarded block
     # above -- that block's condition has never been true (dangling NOT MATCHES),
     # which is also why --gc-sections never made it into the link.
+    # -Bsymbolic-functions is a GNU ld / ELF option; the Mach-O linker on
+    # Apple platforms rejects it, so guard it out there.
     target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,-Bsymbolic-functions)
 endif()
 
