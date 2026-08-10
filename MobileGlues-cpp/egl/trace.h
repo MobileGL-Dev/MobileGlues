@@ -12,6 +12,9 @@
 #include <EGL/egl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <pthread.h>
+#endif
 
 // Tracing for the EGL layer.
 //
@@ -35,7 +38,15 @@
 // A thread id, via the syscall rather than gettid(), which bionic only exposes as
 // a real symbol from API 30 and this library targets 21.
 static inline int mg_egl_tid(void) {
+#ifdef __APPLE__
+    // macOS has no gettid(2). pthread_self() returns an opaque handle that is
+    // unique per thread and stable for the lifetime of that thread; cast the
+    // low bits to an int for log readability, as the EGL trace only needs a
+    // per-thread discriminator.
+    return (int)(uintptr_t)pthread_self();
+#else
     return (int)syscall(__NR_gettid);
+#endif
 }
 
 #if MG_EGL_TRACE
