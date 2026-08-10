@@ -51,7 +51,10 @@ void* glXGetProcAddress(const char* name) {
     LOG()
     std::string real_func_name = handle_multidraw_func_name(std::string(name));
 #ifdef __APPLE__
-    return dlsym((void*)(~(uintptr_t)0), real_func_name.c_str());
+    // (void*)(~(uintptr_t)0) is RTLD_NEXT on Darwin, which skips this image's own
+    // exports; use RTLD_SELF so the gl* wrapper symbols this library exports are
+    // resolvable. See MobileGL-Dev/MobileGlues PR #50.
+    return dlsym(RTLD_SELF, real_func_name.c_str());
 #else
 
     void* proc = nullptr;

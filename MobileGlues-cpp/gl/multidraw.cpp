@@ -198,10 +198,10 @@ bool mg_multi_draw_arrays_ext_available() {
         // pick up a platform wrapper stub that reports nothing.
         const bool ext = mg_gles_has_extension("GL_EXT_multi_draw_arrays");
         const bool angle = mg_gles_has_extension("GL_ANGLE_multi_draw");
-        // On Apple `gles` is a dlsym pseudo-handle, not a library, and resolving
-        // through it would find MobileGlues' own alias and recurse. The only thing
-        // keeping that unreachable today is that neither extension is ever
-        // advertised (gles/loader.cpp), which is not a guarantee worth relying on.
+        // On Apple `gles` is now a real dlopen()'d ANGLE handle (gles/loader.cpp),
+        // so resolving through it reaches the backend directly and cannot recurse.
+        // The pseudo-handle guard below is kept for the non-Apple dlopen'd path
+        // and to be safe against a failed open (NULL).
         const bool real_handle = gles != nullptr && gles != reinterpret_cast<void*>(~(uintptr_t)0);
         if (real_handle && (ext || angle)) {
             const char* arrays_name = ext ? "glMultiDrawArraysEXT" : "glMultiDrawArraysANGLE";

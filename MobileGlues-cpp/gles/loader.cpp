@@ -144,8 +144,25 @@ void load_libs() {
         LOG_E("ANGLE was requested but was not loaded; running on the system driver\n")
     }
 #else
-    gles = (void*)(~(uintptr_t)0);
-    egl = (void*)(~(uintptr_t)0);
+    // On Apple/Darwin the EGL/GLES backend is ANGLE, provided as frameworks
+    // (libEGL.framework / libGLESv2.framework) that the host launcher embeds at
+    // @rpath. They are linked as dependencies, so they are loaded *before* this
+    // image.
+    //
+    // We must therefore dlopen the ANGLE frameworks explicitly and keep the real
+    // handles here. (void*)(~(uintptr_t)0) is RTLD_NEXT on Darwin -- it only
+    // searches images loaded *after* this one, so it finds nothing and every
+    // entry point in init_target_egl/init_target_gles resolves to NULL, ending in
+    // a null-pointer SIGSEGV. RTLD_SELF / RTLD_DEFAULT are no better: they would
+    // hand back this library's own exported wrapper (e.g. eglInitialize) and the
+    // wrapper would call itself -> infinite recursion. A real dlopen()'d ANGLE
+    // handle is the only unambiguous way to reach the backend.
+    gles = dlopen("@rpath/libGLESv2.framework/libGLESv2", RTLD_NOW | RTLD_LOCAL);
+    egl = dlopen("@rpath/libEGL.framework/libEGL", RTLD_NOW | RTLD_LOCAL);
+    if (!egl || !gles) {
+        LOG_W_FORCE("load_libs: ANGLE framework open failed (egl=%p gles=%p dlerror=%s)", (void*)egl, (void*)gles,
+                    dlerror())
+    }
 #endif
 }
 
