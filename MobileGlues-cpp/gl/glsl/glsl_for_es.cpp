@@ -18,6 +18,7 @@
 #include <regex>
 #include <strstream>
 #include <algorithm>
+#include <cctype>
 #include <sstream>
 #include "cache.h"
 #include "../../version.h"
@@ -248,8 +249,17 @@ std::string process_uniform_declarations(const std::string& glslCode) {
 
     result.reserve(glslCode.length());
 
+    const auto is_identifier_char = [](char ch) {
+        const auto uch = static_cast<unsigned char>(ch);
+        return std::isalnum(uch) || ch == '_';
+    };
+
     while (scan_pos < length) {
-        if (glslCode.compare(scan_pos, 7, "uniform") == 0) {
+        const bool is_uniform_keyword =
+            glslCode.compare(scan_pos, 7, "uniform") == 0 &&
+            (scan_pos == 0 || !is_identifier_char(glslCode[scan_pos - 1])) &&
+            (scan_pos + 7 >= length || !is_identifier_char(glslCode[scan_pos + 7]));
+        if (is_uniform_keyword) {
             if (scan_pos > chunk_start) {
                 result.append(glslCode, chunk_start, scan_pos - chunk_start);
             }
@@ -350,7 +360,7 @@ std::string GLSLtoGLSLES(const char* glsl_code, GLenum glsl_type, uint essl_vers
                          int& return_code) {
     std::string sha256_string(glsl_code);
     sha256_string += "\n//" + std::to_string(MAJOR) + "." + std::to_string(MINOR) + "." + std::to_string(REVISION) +
-                     "|" + std::to_string(essl_version);
+                     "|glsl-postprocess-2|" + std::to_string(essl_version);
     const char* cachedESSL = Cache::get_instance().get(sha256_string.c_str());
     if (cachedESSL) {
         LOG_D("GLSL Hit Cache:\n%s\n-->\n%s", glsl_code, cachedESSL)
