@@ -13,6 +13,8 @@
 #include <GL/gl.h>
 #include <stdio.h>
 #include <string>
+#include <vector>
+#include "uniform_defaults.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -23,8 +25,11 @@ extern "C"
 }
 #endif
 
+// Translates desktop GLSL to ESSL. When `uniform_defaults` is given it receives
+// the initialisers the shader gave its uniforms, which ESSL cannot carry; see
+// uniform_defaults.h.
 std::string GLSLtoGLSLES(const char* glsl_code, GLenum glsl_type, uint essl_version, uint glsl_version,
-                         int& return_code);
+                         int& return_code, std::vector<uniform_default_t>* uniform_defaults = nullptr);
 std::string GLSLtoGLSLES_1(const char* glsl_code, GLenum glsl_type, uint esversion, int& return_code);
 std::string GLSLtoGLSLES_2(const char* glsl_code, GLenum glsl_type, uint essl_version, int& return_code);
 int getGLSLVersion(const char* glsl_code);

@@ -23,6 +23,11 @@ struct shader_t shaderInfo;
 
 UnorderedMap<GLuint, bool> shader_map_is_sampler_buffer_emulated;
 
+// The uniform initialisers stripped from each translated shader, applied by
+// glLinkProgram once a program using the shader links. A shader without any has
+// no entry.
+UnorderedMap<GLuint, std::vector<uniform_default_t>> shader_uniform_defaults;
+
 bool can_run_essl3(unsigned int esversion, const char* glsl) {
     if (strncmp(glsl, "#version 100", 12) == 0) {
         return true;
@@ -56,6 +61,7 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar* const* string, c
     shaderInfo.converted = "";
     shaderInfo.frag_data_changed_converted.clear();
     shaderInfo.frag_data_changed = 0;
+    shader_uniform_defaults.erase(shader);
     size_t l = 0;
     for (int i = 0; i < count; i++)
         l += (length && length[i] >= 0) ? length[i] : strlen(string[i]);
@@ -87,11 +93,17 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar* const* string, c
         GLint shaderType;
         GLES.glGetShaderiv(shader, GL_SHADER_TYPE, &shaderType);
         int return_code = 0;
-        essl_src = GLSLtoGLSLES(glsl_src.c_str(), shaderType, hardware->es_version, glsl_version, return_code);
+        std::vector<uniform_default_t> uniform_defaults;
+        essl_src = GLSLtoGLSLES(glsl_src.c_str(), shaderType, hardware->es_version, glsl_version, return_code,
+                                &uniform_defaults);
 
         if (essl_src.empty()) {
             LOG_E("Failed to convert shader %d.", shader)
             return;
+        }
+        if (!uniform_defaults.empty()) {
+            LOG_D("[INFO] [Shader] %zu uniform default(s) kept for shader %u", uniform_defaults.size(), shader)
+            shader_uniform_defaults[shader] = std::move(uniform_defaults);
         }
         LOG_D("\n[INFO] [Shader] Converted Shader source: \n%s", essl_src.c_str())
     }

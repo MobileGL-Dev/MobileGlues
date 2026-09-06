@@ -16,10 +16,12 @@
 #include <iostream>
 #include "../config/settings.h"
 #include "drawing.h"
+#include "glsl/uniform_defaults.h"
 
 #define DEBUG 0
 
 extern UnorderedMap<GLuint, bool> shader_map_is_sampler_buffer_emulated;
+extern UnorderedMap<GLuint, std::vector<uniform_default_t>> shader_uniform_defaults;
 UnorderedMap<GLuint, bool> program_map_is_sampler_buffer_emulated;
 
 enum class ShouldGenerateFSState : int {
@@ -95,6 +97,151 @@ void GenerateDefaultFSSource() {
     }
 }
 
+// One glUniform*v call for one stripped initialiser. `values` is laid out the way
+// the GL call wants it: elements in order, each column-major.
+static void set_uniform_default(GLint location, const uniform_default_t& d) {
+    const size_t n = d.values.size();
+    if (n != static_cast<size_t>(d.rows) * static_cast<size_t>(d.columns) * static_cast<size_t>(d.count)) return;
+    const GLsizei count = d.count;
+
+    if (d.base == uniform_base_t::Float) {
+        std::vector<GLfloat> v(n);
+        for (size_t k = 0; k < n; ++k)
+            v[k] = static_cast<GLfloat>(d.values[k]);
+        if (d.columns == 1) {
+            switch (d.rows) {
+            case 1:
+                GLES.glUniform1fv(location, count, v.data());
+                return;
+            case 2:
+                GLES.glUniform2fv(location, count, v.data());
+                return;
+            case 3:
+                GLES.glUniform3fv(location, count, v.data());
+                return;
+            case 4:
+                GLES.glUniform4fv(location, count, v.data());
+                return;
+            default:
+                return;
+            }
+        }
+        switch (d.columns * 10 + d.rows) {
+        case 22:
+            GLES.glUniformMatrix2fv(location, count, GL_FALSE, v.data());
+            return;
+        case 33:
+            GLES.glUniformMatrix3fv(location, count, GL_FALSE, v.data());
+            return;
+        case 44:
+            GLES.glUniformMatrix4fv(location, count, GL_FALSE, v.data());
+            return;
+        case 23:
+            GLES.glUniformMatrix2x3fv(location, count, GL_FALSE, v.data());
+            return;
+        case 32:
+            GLES.glUniformMatrix3x2fv(location, count, GL_FALSE, v.data());
+            return;
+        case 24:
+            GLES.glUniformMatrix2x4fv(location, count, GL_FALSE, v.data());
+            return;
+        case 42:
+            GLES.glUniformMatrix4x2fv(location, count, GL_FALSE, v.data());
+            return;
+        case 34:
+            GLES.glUniformMatrix3x4fv(location, count, GL_FALSE, v.data());
+            return;
+        case 43:
+            GLES.glUniformMatrix4x3fv(location, count, GL_FALSE, v.data());
+            return;
+        default:
+            return;
+        }
+    }
+
+    if (d.base == uniform_base_t::Uint) {
+        std::vector<GLuint> v(n);
+        for (size_t k = 0; k < n; ++k)
+            v[k] = static_cast<GLuint>(d.values[k]);
+        switch (d.rows) {
+        case 1:
+            GLES.glUniform1uiv(location, count, v.data());
+            return;
+        case 2:
+            GLES.glUniform2uiv(location, count, v.data());
+            return;
+        case 3:
+            GLES.glUniform3uiv(location, count, v.data());
+            return;
+        case 4:
+            GLES.glUniform4uiv(location, count, v.data());
+            return;
+        default:
+            return;
+        }
+    }
+
+    // Int, and Bool, which GL sets through the integer entry points.
+    std::vector<GLint> v(n);
+    for (size_t k = 0; k < n; ++k)
+        v[k] = static_cast<GLint>(d.values[k]);
+    switch (d.rows) {
+    case 1:
+        GLES.glUniform1iv(location, count, v.data());
+        return;
+    case 2:
+        GLES.glUniform2iv(location, count, v.data());
+        return;
+    case 3:
+        GLES.glUniform3iv(location, count, v.data());
+        return;
+    case 4:
+        GLES.glUniform4iv(location, count, v.data());
+        return;
+    default:
+        return;
+    }
+}
+
+// Desktop GL gives a uniform its initialiser when the program links; ESSL has no
+// initialisers, so the translated shaders reported theirs and they are set here,
+// right after the link and before the application can touch the program. A
+// uniform the driver optimised away has no location and is skipped. The GL
+// uniform entry points act on the current program, so it is switched and put
+// back through the driver directly: this layer's own tracking is not touched.
+static void apply_uniform_defaults(GLuint program) {
+    if (shader_uniform_defaults.empty()) return;
+    GLint linked = 0;
+    GLES.glGetProgramiv(program, GL_LINK_STATUS, &linked);
+    if (!linked) return;
+
+    GLuint shaders[8] = {};
+    GLsizei attached = 0;
+    GLES.glGetAttachedShaders(program, 8, &attached, shaders);
+
+    GLint previous = -1;
+    for (GLsizei s = 0; s < attached; ++s) {
+        const auto it = shader_uniform_defaults.find(shaders[s]);
+        if (it == shader_uniform_defaults.end() || it->second.empty()) continue;
+        if (previous < 0) {
+            GLES.glGetIntegerv(GL_CURRENT_PROGRAM, &previous);
+            GLES.glUseProgram(program);
+        }
+        for (const auto& d : it->second) {
+            GLint location = GLES.glGetUniformLocation(program, d.name.c_str());
+            // An array may be listed under its first element's name.
+            if (location < 0) location = GLES.glGetUniformLocation(program, (d.name + "[0]").c_str());
+            if (location < 0) {
+                LOG_D("uniform default: %s is not active in program %u, skipped", d.name.c_str(), program)
+                continue;
+            }
+            LOG_D("uniform default: %s -> location %d in program %u", d.name.c_str(), location, program)
+            set_uniform_default(location, d);
+        }
+    }
+    if (previous >= 0) GLES.glUseProgram(static_cast<GLuint>(previous));
+}
+
 static UnorderedMap<unsigned, GLuint> DefaultFSMap; // essl version <-> shader id
 void glLinkProgram(GLuint program) {
     LOG()
@@ -151,6 +298,7 @@ void glLinkProgram(GLuint program) {
     }
 
     GLES.glLinkProgram(program);
+    apply_uniform_defaults(program);
 
     CHECK_GL_ERROR
 }

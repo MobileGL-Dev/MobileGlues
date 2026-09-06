@@ -113,6 +113,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
     gl/ExtWrappers/DSAWrapper.cpp
     gl/ExtWrappers/MultiBindWrapper.cpp
     gl/glsl/glsl_for_es.cpp
+    gl/glsl/uniform_defaults.cpp
     gl/glsl/cache.cpp
     gl/FSR1/FSR1.cpp
 

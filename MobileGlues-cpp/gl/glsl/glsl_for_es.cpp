@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <sstream>
 #include "cache.h"
+#include "uniform_defaults.h"
 #include "../../version.h"
 
 #define DEBUG 0
@@ -238,108 +239,6 @@ void trim(std::string& str) {
     str.erase(std::find_if(str.rbegin(), str.rend(), [](int ch) { return !std::isspace(ch); }).base(), str.end());
 }
 
-// Process all uniform declarations into `uniform <precision> <type> <name>;` form
-std::string process_uniform_declarations(const std::string& glslCode) {
-    std::string result;
-    size_t scan_pos = 0;
-    size_t chunk_start = 0;
-    const size_t length = glslCode.length();
-    const std::vector<std::string> precision_kws = {"highp", "lowp", "mediump"};
-
-    result.reserve(glslCode.length());
-
-    while (scan_pos < length) {
-        if (glslCode.compare(scan_pos, 7, "uniform") == 0) {
-            if (scan_pos > chunk_start) {
-                result.append(glslCode, chunk_start, scan_pos - chunk_start);
-            }
-
-            const size_t decl_start = scan_pos;
-            scan_pos += 7; // Skip "uniform"
-
-            std::string precision, type;
-            bool found_precision = false;
-
-            while (scan_pos < length) {
-                while (scan_pos < length && std::isspace(glslCode[scan_pos]))
-                    ++scan_pos;
-
-                for (const auto& kw : precision_kws) {
-                    if (glslCode.compare(scan_pos, kw.length(), kw) == 0) {
-                        precision = " " + kw;
-                        scan_pos += kw.length();
-                        found_precision = true;
-                        break;
-                    }
-                }
-                if (found_precision) break;
-
-                const size_t type_start = scan_pos;
-                while (scan_pos < length && (std::isalnum(glslCode[scan_pos]) || glslCode[scan_pos] == '_')) {
-                    ++scan_pos;
-                }
-                type = glslCode.substr(type_start, scan_pos - type_start);
-                break;
-            }
-
-            while (scan_pos < length) {
-                while (scan_pos < length && std::isspace(glslCode[scan_pos]))
-                    ++scan_pos;
-
-                bool found = false;
-                for (const auto& kw : precision_kws) {
-                    if (glslCode.compare(scan_pos, kw.length(), kw) == 0) {
-                        if (precision.empty()) precision = " " + kw;
-                        scan_pos += kw.length();
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) break;
-            }
-
-            if (type.empty()) {
-                const size_t type_start = scan_pos;
-                while (scan_pos < length && (std::isalnum(glslCode[scan_pos]) || glslCode[scan_pos] == '_')) {
-                    ++scan_pos;
-                }
-                type = glslCode.substr(type_start, scan_pos - type_start);
-            }
-
-            while (scan_pos < length && std::isspace(glslCode[scan_pos]))
-                ++scan_pos;
-            const size_t name_start = scan_pos;
-            while (scan_pos < length && (std::isalnum(glslCode[scan_pos]) || glslCode[scan_pos] == '_')) {
-                ++scan_pos;
-            }
-            const std::string name = glslCode.substr(name_start, scan_pos - name_start);
-
-            size_t decl_end = glslCode.find(';', scan_pos);
-            if (decl_end == std::string::npos)
-                decl_end = length;
-            else
-                ++decl_end;
-            const bool has_initializer = (glslCode.find('=', scan_pos) < decl_end);
-            if (has_initializer) {
-                result.append("uniform").append(precision).append(" ").append(type).append(" ").append(name).append(
-                    ";");
-            } else {
-                result.append(glslCode, decl_start, decl_end - decl_start);
-            }
-
-            scan_pos = chunk_start = decl_end;
-        } else {
-            ++scan_pos;
-        }
-    }
-
-    if (chunk_start < length) {
-        result.append(glslCode, chunk_start, length - chunk_start);
-    }
-
-    return result;
-}
-
 std::string processOutColorLocations(const std::string& glslCode) {
     const static std::regex pattern(R"(\n(out highp vec4 outColor)(\d+);)");
     const std::string replacement = "\nlayout(location=$2) $1$2;";
@@ -347,15 +246,19 @@ std::string processOutColorLocations(const std::string& glslCode) {
 }
 
 std::string GLSLtoGLSLES(const char* glsl_code, GLenum glsl_type, uint essl_version, uint glsl_version,
-                         int& return_code) {
+                         int& return_code, std::vector<uniform_default_t>* uniform_defaults) {
+    // The cache holds the translation as SPIRV-Cross produced it, uniform
+    // initialisers included, so a hit can report the defaults exactly as a miss
+    // does. The trailing tag keeps entries from earlier builds of this version,
+    // which were stored already stripped, from being taken for that.
     std::string sha256_string(glsl_code);
     sha256_string += "\n//" + std::to_string(MAJOR) + "." + std::to_string(MINOR) + "." + std::to_string(REVISION) +
-                     "|" + std::to_string(essl_version);
+                     "|" + std::to_string(essl_version) + "|udef";
     const char* cachedESSL = Cache::get_instance().get(sha256_string.c_str());
     if (cachedESSL) {
         LOG_D("GLSL Hit Cache:\n%s\n-->\n%s", glsl_code, cachedESSL)
         return_code = 0;
-        return (char*)cachedESSL;
+        return process_uniform_declarations(cachedESSL, uniform_defaults);
     }
 
     return_code = -1;
@@ -363,8 +266,8 @@ std::string GLSLtoGLSLES(const char* glsl_code, GLenum glsl_type, uint essl_vers
     // return_code):GLSLtoGLSLES_2(glsl_code, glsl_type, essl_version, return_code);
     std::string converted = GLSLtoGLSLES_2(glsl_code, glsl_type, essl_version, return_code);
     if (return_code >= 0 && !converted.empty()) {
-        converted = process_uniform_declarations(converted);
         Cache::get_instance().put(sha256_string.c_str(), converted.c_str());
+        converted = process_uniform_declarations(converted, uniform_defaults);
     }
 
     return (return_code >= 0) ? converted : glsl_code;
