@@ -139,7 +139,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
     spirv-cross-c
 )
 
-if (NOT MSVC)
+if (NOT MSVC AND NOT APPLE)
     # Calls between this library's own translation units must land in this
     # library. Without this, an internal call to an exported gl* symbol goes
     # through a preemptible PLT slot, and in an Android app process the system
@@ -149,7 +149,9 @@ if (NOT MSVC)
     # symbols stay exported for dlsym and eglGetProcAddress; only who internal
     # calls bind to changes. On the target, not in the AppleClang-guarded block
     # above -- that block's condition has never been true (dangling NOT MATCHES),
-    # which is also why --gc-sections never made it into the link.
+    # which is also why --gc-sections never made it into the link. Not on Apple:
+    # ld64 has no -Bsymbolic-functions and fails the link on it, and its
+    # two-level namespace already binds internal calls to this library.
     target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,-Bsymbolic-functions)
 endif()
 

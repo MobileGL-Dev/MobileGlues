@@ -10,8 +10,13 @@
 
 #include "../gl/log.h"
 #include <EGL/egl.h>
+#if defined(__APPLE__)
+#include <pthread.h>
+#include <stdint.h>
+#else
 #include <sys/syscall.h>
 #include <unistd.h>
+#endif
 
 // Tracing for the EGL layer.
 //
@@ -33,9 +38,17 @@
 #define MG_EGL_TRACE 0
 
 // A thread id, via the syscall rather than gettid(), which bionic only exposes as
-// a real symbol from API 30 and this library targets 21.
+// a real symbol from API 30 and this library targets 21. __NR_gettid is a Linux
+// syscall number and does not exist on Darwin, where the iOS build broke on it;
+// there the kernel thread id comes from pthread_threadid_np.
 static inline int mg_egl_tid(void) {
+#if defined(__APPLE__)
+    uint64_t tid = 0;
+    pthread_threadid_np(pthread_self(), &tid);
+    return (int)tid;
+#else
     return (int)syscall(__NR_gettid);
+#endif
 }
 
 #if MG_EGL_TRACE

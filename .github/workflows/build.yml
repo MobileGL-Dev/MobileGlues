@@ -12,7 +12,7 @@ jobs:
       - name: Build MobileGlues
         run: |
           cd MobileGlues-cpp
-          wget https://github.com/leetal/ios-cmake/raw/master/ios.toolchain.cmake
+          curl -fsSL -o ios.toolchain.cmake https://github.com/leetal/ios-cmake/raw/master/ios.toolchain.cmake
           cmake -B build \
             -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake \
             -DSTATICLIB=OFF \
