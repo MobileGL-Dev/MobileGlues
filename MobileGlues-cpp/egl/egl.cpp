@@ -54,6 +54,16 @@ namespace {
         frontend_error = error;
     }
 
+    // The backend's error for a call that just failed, read for a log line and
+    // put back where the application's own eglGetError will find it: reading it
+    // here would otherwise consume it.
+    EGLint rearmBackendError() {
+        LOAD_EGL(eglGetError)
+        const EGLint error = egl_eglGetError ? egl_eglGetError() : EGL_SUCCESS;
+        if (error != EGL_SUCCESS) setFrontendError(error);
+        return error;
+    }
+
     const char* eglAttributeName(EGLint attribute) {
         switch (attribute) {
         case EGL_NONE:
@@ -735,6 +745,9 @@ extern "C"
                 MGContext* record = mg_context_create(dpy, es_context, share_context, EGL_OPENGL_ES_API,
                                                       g_gles_caps.major, g_gles_caps.minor, 0, 0);
                 ETRACE("  -> MGContext %llu", record ? record->id : 0ULL);
+            } else {
+                LOG_E("eglCreateContext(ES): the backend refused with %s [%s]", mg_egl_error_name(rearmBackendError()),
+                      describeAttributes(attrib_list).c_str())
             }
             return es_context;
         }
@@ -748,6 +761,11 @@ extern "C"
                                           &frontend_flags, &context_error)) {
             ETRACE("eglCreateContext(desktop, dpy=%p, share=%p) rejected before reaching the backend: %s [%s]", dpy,
                    share_context, mg_egl_error_name(context_error), describeAttributes(attrib_list).c_str());
+            // Always logged, unlike the trace: a host that retries with other
+            // attributes, or goes on without a context, otherwise leaves no
+            // record of why the first request was turned down.
+            LOG_E("eglCreateContext: rejected with %s [%s]", mg_egl_error_name(context_error),
+                  describeAttributes(attrib_list).c_str())
             setFrontendError(context_error);
             return EGL_NO_CONTEXT;
         }
@@ -755,6 +773,8 @@ extern "C"
         LOAD_EGL(eglBindAPI)
         if (egl_eglBindAPI(EGL_OPENGL_ES_API) != EGL_TRUE) {
             ETRACE("eglCreateContext(desktop, dpy=%p): backend eglBindAPI(ES) failed", dpy);
+            LOG_E("eglCreateContext: the backend refused eglBindAPI(ES) with %s",
+                  mg_egl_error_name(rearmBackendError()))
             return EGL_NO_CONTEXT;
         }
 
@@ -766,6 +786,10 @@ extern "C"
             MGContext* record = mg_context_create(dpy, context, share_context, EGL_OPENGL_API, frontend_major,
                                                   frontend_minor, kVirtualDesktopProfileMask, frontend_flags);
             ETRACE("  -> MGContext %llu", record ? record->id : 0ULL);
+        } else {
+            LOG_E("eglCreateContext(desktop %d.%d): the backend refused with %s [backend attrs: %s]", frontend_major,
+                  frontend_minor, mg_egl_error_name(rearmBackendError()),
+                  describeAttributes(backend_attributes).c_str())
         }
         return context;
     }
@@ -794,6 +818,14 @@ extern "C"
         const EGLBoolean result = egl_eglMakeCurrent(dpy, draw, read, ctx);
         ETRACE("eglMakeCurrent(dpy=%p, draw=%p, read=%p, ctx=%p, MGContext=%llu) -> %s", dpy, draw, read, ctx,
                before ? before->id : 0ULL, result == EGL_TRUE ? "ok" : "FAILED");
+        if (result != EGL_TRUE) {
+            // Always logged: a host that ignores this return value goes on to
+            // make GL calls with nothing current, and the first thing it hears
+            // is the driver answering null. Say so here, where the cause is.
+            LOG_E("eglMakeCurrent(dpy=%p, draw=%p, read=%p, ctx=%p) failed with %s; GL calls on this thread reach the "
+                  "backend without a current context",
+                  dpy, draw, read, ctx, mg_egl_error_name(rearmBackendError()))
+        }
         // Only on success: a failed make-current leaves the previous context
         // current, so re-pointing the record would describe the wrong one.
         if (result == EGL_TRUE) mg_context_make_current(dpy, draw, read, ctx);

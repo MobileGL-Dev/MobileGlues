@@ -282,8 +282,33 @@ std::string getBeforeThirdSpace(const std::string& str) {
     return str.substr(0, endPos);
 }
 
+// What the backend said about itself while the bootstrap probe context was
+// current. Kept because the answers are properties of the driver, not of any one
+// context, and this layer's GL_RENDERER string is built from them.
+static std::string g_probe_renderer;
+static std::string g_probe_version;
+
+// The backend's string for `name`, or the probe-time copy when the backend has
+// none.
+//
+// glGetString returns null when no context is current on the calling thread,
+// and constructing a std::string from that is strlen(nullptr): a SIGSEGV inside
+// this library's glGetString, which is how a host whose context was made current
+// through some other EGL than the one this layer drives first showed itself --
+// GlDevice's very first query, GL_RENDERER, took the process down with nothing
+// in the log. The strings are process-wide facts, so answer from the probe and
+// say why.
+static std::string backend_string(GLenum name, const std::string& probe_copy, const char* what) {
+    const GLubyte* live = GLES.glGetString ? GLES.glGetString(name) : nullptr;
+    if (live) return reinterpret_cast<const char*>(live);
+    LOG_E("glGetString(%s): the backend returned null, so no context is current on this thread for the GLES "
+          "library this layer loaded; answering from the bootstrap probe (\"%s\")",
+          what, probe_copy.c_str())
+    return probe_copy;
+}
+
 std::string getGpuName() {
-    std::string gpuName = std::string((char*)GLES.glGetString(GL_RENDERER));
+    std::string gpuName = backend_string(GL_RENDERER, g_probe_renderer, "GL_RENDERER");
 
     if (gpuName.empty()) {
         return "<unknown>";
@@ -321,7 +346,15 @@ std::string getGpuName() {
 }
 
 void set_es_version() {
-    std::string ESVersionStr = getBeforeThirdSpace(std::string((const char*)GLES.glGetString(GL_VERSION)));
+    // Under the bootstrap probe context. A probe that failed to come up leaves
+    // both null, which used to be a crash at library load rather than a message.
+    const GLubyte* renderer = GLES.glGetString ? GLES.glGetString(GL_RENDERER) : nullptr;
+    const GLubyte* version = GLES.glGetString ? GLES.glGetString(GL_VERSION) : nullptr;
+    g_probe_renderer = renderer ? reinterpret_cast<const char*>(renderer) : "";
+    g_probe_version = version ? reinterpret_cast<const char*>(version) : "";
+    if (!version)
+        LOG_E("set_es_version: the backend answered GL_VERSION with null; the bootstrap context is not current")
+    std::string ESVersionStr = getBeforeThirdSpace(g_probe_version);
     int major, minor;
 
     if (sscanf(ESVersionStr.c_str(), "OpenGL ES %d.%d", &major, &minor) == 2) {
@@ -336,7 +369,7 @@ void set_es_version() {
 }
 
 std::string getGLESName() {
-    return getBeforeThirdSpace(std::string((char*)GLES.glGetString(GL_VERSION)));
+    return getBeforeThirdSpace(backend_string(GL_VERSION, g_probe_version, "GL_VERSION"));
 }
 
 static std::string rendererString;
