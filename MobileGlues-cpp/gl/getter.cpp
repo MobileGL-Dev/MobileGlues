@@ -283,7 +283,11 @@ std::string getBeforeThirdSpace(const std::string& str) {
 }
 
 std::string getGpuName() {
-    std::string gpuName = std::string((char*)GLES.glGetString(GL_RENDERER));
+    const GLubyte* gpuNamePtr = GLES.glGetString(GL_RENDERER);
+    if (gpuNamePtr == nullptr) {
+        return "<unknown>";
+    }
+    std::string gpuName = std::string((char*)gpuNamePtr);
 
     if (gpuName.empty()) {
         return "<unknown>";
@@ -321,7 +325,13 @@ std::string getGpuName() {
 }
 
 void set_es_version() {
-    std::string ESVersionStr = getBeforeThirdSpace(std::string((const char*)GLES.glGetString(GL_VERSION)));
+    const GLubyte* verPtr = GLES.glGetString(GL_VERSION);
+    if (verPtr == nullptr) {
+        hardware->es_version = 300;
+        LOG_I("OpenGL ES Version: <unknown>")
+        return;
+    }
+    std::string ESVersionStr = getBeforeThirdSpace(std::string((const char*)verPtr));
     int major, minor;
 
     if (sscanf(ESVersionStr.c_str(), "OpenGL ES %d.%d", &major, &minor) == 2) {
@@ -336,7 +346,11 @@ void set_es_version() {
 }
 
 std::string getGLESName() {
-    return getBeforeThirdSpace(std::string((char*)GLES.glGetString(GL_VERSION)));
+    const GLubyte* verPtr = GLES.glGetString(GL_VERSION);
+    if (verPtr == nullptr) {
+        return "";
+    }
+    return getBeforeThirdSpace(std::string((char*)verPtr));
 }
 
 static std::string rendererString;
