@@ -105,6 +105,14 @@ public:
     GLsizei width;
     GLsizei height;
     GLsizei depth;
+    // Sampling state as the application set it, GL defaults (ES 3.2 table
+    // 8.19): min NEAREST_MIPMAP_LINEAR, mag LINEAR, compare NONE. The
+    // driver holds the depth-legal view of these three on a sized depth
+    // texture with comparison off (gl/texture.cpp push_depth_sampling_state),
+    // so glGetTexParameter* answers from here rather than the driver.
+    GLint min_filter = GL_NEAREST_MIPMAP_LINEAR;
+    GLint mag_filter = GL_LINEAR;
+    GLenum compare_mode = GL_NONE;
 };
 
 // How many texture units this layer can actually track. Anything the driver

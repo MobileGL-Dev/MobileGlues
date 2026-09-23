@@ -139,6 +139,31 @@ extern "C"
 }
 #endif
 
-void prepareForDraw();
+// Built by prepareForDraw() before an entry point hands off to the driver
+// and destroyed when it returns, so the depth-completeness rewrite spans
+// exactly the draws it must (multidraw loops included). The rule being
+// patched around is in gl/depth_filter.h; the scan that fills this runs in
+// gl/texture.cpp. Move-only: the destructor owns driver state.
+struct mg_depth_draw_guard {
+    // Same bound as MAX_TEXTURE_IMAGE_UNITS in gl/texture.cpp; the scan
+    // fills at most mg_max_texture_units() entries.
+    static constexpr int kMaxUnits = 128;
+    struct Moved {
+        int unit;
+        GLuint sampler;
+        // -1 while nothing on the texture object was rewritten,
+        // otherwise its GL_TEXTURE_COMPARE_MODE, restored on destruction.
+        int saved_compare;
+    };
+    Moved moved[kMaxUnits] = {};
+    int moved_count = 0;
+
+    mg_depth_draw_guard();
+    ~mg_depth_draw_guard();
+    mg_depth_draw_guard(const mg_depth_draw_guard&) = delete;
+    mg_depth_draw_guard& operator=(const mg_depth_draw_guard&) = delete;
+};
+
+mg_depth_draw_guard prepareForDraw();
 
 #endif // MOBILEGLUES_MG_H

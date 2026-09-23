@@ -6,6 +6,7 @@
 // End of Source File Header
 
 #include "multidraw.h"
+#include "mg.h"
 #include "../config/settings.h"
 #include "buffer.h"
 #include "enable.h"
@@ -19,8 +20,6 @@
 #include <vector>
 
 #define DEBUG 0
-
-void prepareForDraw();
 
 // ---------------------------------------------------------------------------
 // Diagnostics
@@ -769,7 +768,7 @@ void mg_glMultiDrawElementsBaseVertex_drawelements(GLenum mode, GLsizei* counts,
     // the multi-draw without a trace.
     const GLsizei indexSize = mg_index_size(type);
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     // Queried once per multi-draw rather than per sub-draw: it decides whether the
     // sentinel value is special or an ordinary vertex index.
@@ -878,7 +877,7 @@ void mg_glMultiDrawElements_drawelements(GLenum mode, const GLsizei* count, GLen
     if (mg_multidraw_restart_takeover(mode, count, type, indices, primcount, nullptr)) return;
     md_restart_scope_t restart_scope(type);
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     // GL 4.6 sec. 10.5 defines glMultiDrawElements as exactly this loop; there is
     // no base vertex component on this entry point.
@@ -910,7 +909,7 @@ void mg_glMultiDrawElementsBaseVertex_indirect(GLenum mode, GLsizei* counts, GLe
         return;
     }
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     GLuint prevIndirectBuffer = 0;
     if (!prepare_indirect_buffer(counts, type, indices, primcount, basevertex, &prevIndirectBuffer)) {
@@ -943,7 +942,7 @@ void mg_glMultiDrawElements_indirect(GLenum mode, const GLsizei* count, GLenum t
         return;
     }
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     GLuint prevIndirectBuffer = 0;
     if (!prepare_indirect_buffer(count, type, indices, primcount, nullptr, &prevIndirectBuffer)) {
@@ -984,7 +983,7 @@ void mg_glMultiDrawElementsBaseVertex_multiindirect(GLenum mode, GLsizei* counts
         return;
     }
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     GLuint prevIndirectBuffer = 0;
     if (!prepare_indirect_buffer(counts, type, indices, primcount, basevertex, &prevIndirectBuffer)) {
@@ -1013,7 +1012,7 @@ void mg_glMultiDrawElements_multiindirect(GLenum mode, const GLsizei* count, GLe
         return;
     }
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     GLuint prevIndirectBuffer = 0;
     if (!prepare_indirect_buffer(count, type, indices, primcount, nullptr, &prevIndirectBuffer)) {
@@ -1046,7 +1045,7 @@ void mg_glMultiDrawElementsBaseVertex_basevertex(GLenum mode, GLsizei* counts, G
         return;
     }
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     for (GLsizei i = 0; i < primcount; ++i) {
         const GLsizei count = counts[i];
@@ -1068,7 +1067,7 @@ void mg_glMultiDrawElements_basevertex(GLenum mode, const GLsizei* count, GLenum
     if (mg_multidraw_restart_takeover(mode, count, type, indices, primcount, nullptr)) return;
     md_restart_scope_t restart_scope(type);
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     // No base vertex component exists on this entry point, so this is the plain
     // spec-defined loop.
@@ -1152,7 +1151,7 @@ void mg_glMultiDrawElementsBaseVertex_multibasevertex(GLenum mode, GLsizei* coun
     if (mg_multidraw_restart_takeover(mode, counts, type, indices, primcount, basevertex)) return;
     md_restart_scope_t restart_scope(type);
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     if (!mg_multi_draw_basevertex(mode, counts, type, indices, primcount, basevertex)) {
         // Only reachable on the single call whose probe failed.
@@ -1187,7 +1186,7 @@ void mg_glMultiDrawElements_multiarrays(GLenum mode, const GLsizei* count, GLenu
     if (mg_multidraw_restart_takeover(mode, count, type, indices, primcount, nullptr)) return;
     md_restart_scope_t restart_scope(type);
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     const bool probing = (g_mda_state == md_probe_state_t::Unprobed);
     if (probing) mg_md_drain();
@@ -1224,7 +1223,7 @@ void mg_glMultiDrawElements_multibasevertex(GLenum mode, const GLsizei* count, G
     if (mg_multidraw_restart_takeover(mode, count, type, indices, primcount, nullptr)) return;
     md_restart_scope_t restart_scope(type);
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     // glMultiDrawElements is glMultiDrawElementsBaseVertex with an all-zero base
     // vertex array, so this entry point gets the same single driver call.
@@ -1519,7 +1518,7 @@ GLAPI GLAPIENTRY void mg_glMultiDrawElementsBaseVertex_compute(GLenum mode, GLsi
     const GLuint total_indices = prefix_sum[static_cast<size_t>(primcount) - 1];
     if (total_indices == 0) return;
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     // Deliberately a driver query, unlike the element array binding above. GL
     // makes glBindBufferBase/Range set the generic binding as well as the indexed
@@ -1677,7 +1676,7 @@ void mg_glMultiDrawElements_compute(GLenum mode, const GLsizei* count, GLenum ty
     LOG()
     if (!mg_multidraw_enter(count, type, primcount, indices)) return;
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     // Nothing to rebase without a base vertex component, so the compute pipeline
     // has no work to do on this entry point.
@@ -1733,7 +1732,7 @@ void mg_glMultiDrawArrays_unroll(GLenum mode, const GLint* first, const GLsizei*
     LOG()
     if (!mg_validate_multidraw_arrays(first, count, drawcount)) return;
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
     for (GLsizei i = 0; i < drawcount; ++i) {
         if (count[i] > 0) GLES.glDrawArrays(mode, first[i], count[i]);
     }
@@ -1751,7 +1750,7 @@ void mg_glMultiDrawArrays_multiarrays(GLenum mode, const GLint* first, const GLs
     }
     if (!mg_validate_multidraw_arrays(first, count, drawcount)) return;
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     const bool probing = (g_arrays_mda_state == md_probe_state_t::Unprobed);
     if (probing) mg_md_drain();
@@ -1875,7 +1874,7 @@ void mg_glMultiDrawArrays_multiindirect(GLenum mode, const GLint* first, const G
         }
     }
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     GLuint prev_indirect = 0;
     if (!prepare_arrays_indirect_buffer(first, count, drawcount, &prev_indirect)) {
@@ -1934,7 +1933,7 @@ void glMultiDrawArraysIndirect(GLenum mode, const void* indirect, GLsizei drawco
         return;
     }
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     // The application already supplies the commands, so the only choice is
     // whether to hand the whole batch to the driver or walk it one command at a
@@ -1968,7 +1967,7 @@ void glMultiDrawElementsIndirect(GLenum mode, GLenum type, const void* indirect,
         return;
     }
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
 
     // Indexed, so restart applies here too. The commands live in a GPU buffer and
     // may have been written by the GPU, so the index stream cannot be rewritten
@@ -2235,7 +2234,7 @@ static bool mg_indirect_count(GLenum mode, GLenum type, bool is_elements, const 
     restore_ssbo();
     GLES.glUseProgram(static_cast<GLuint>(prev_program));
 
-    prepareForDraw();
+    auto depth_guard = prepareForDraw();
     GLES.glBindBuffer(GL_DRAW_INDIRECT_BUFFER, g_count_scratch);
 
     const bool have_mdi = g_gles_caps.GL_EXT_multi_draw_indirect &&
