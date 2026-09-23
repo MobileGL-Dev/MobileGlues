@@ -98,6 +98,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
     gl/shader.cpp
     gl/framebuffer.cpp
     gl/texture.cpp
+    gl/depth_filter.cpp
     gl/drawing.cpp
     gl/multidraw.cpp
     bench/multidraw_bench.cpp
