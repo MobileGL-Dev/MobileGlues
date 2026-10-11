@@ -270,6 +270,12 @@ void InitGLESCapabilities() {
         AppendExtension("GL_ARB_buffer_storage");
     }
 
+    // Advertised under its ES name on purpose: shader translation needs the backend
+    // extension to compile gl_ClipDistance, and apps probe for exactly this string.
+    if (g_gles_caps.GL_EXT_clip_cull_distance) {
+        AppendExtension("GL_EXT_clip_cull_distance");
+    }
+
     if (g_gles_caps.GL_EXT_disjoint_timer_query && global_settings.ext_timer_query) {
         AppendExtension("GL_ARB_timer_query");
         AppendExtension("GL_EXT_timer_query");
