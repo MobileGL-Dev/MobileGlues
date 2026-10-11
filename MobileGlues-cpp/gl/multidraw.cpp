@@ -725,7 +725,14 @@ static bool prepare_indirect_buffer(const GLsizei* counts, GLenum type, const vo
     // thread_local for the same reason as mg_zero_basevertex: nothing in this
     // file takes a lock, and two threads can each have a current context.
     static thread_local std::vector<draw_elements_indirect_command_t> staged;
-    staged.resize(static_cast<size_t>(primcount));
+    // Grown only, like basevertex_staging in drawing.cpp:294 and the rebased
+    // and zeros vectors below. A plain resize() to the exact length shrinks
+    // after a small draw and then value-initialises the difference on the next
+    // large one, a memset of the tail that the fill loop below overwrites
+    // anyway. Only the first primcount commands are read, by the loop and by
+    // the glBufferSubData length, so the size past them never matters.
+    if (staged.size() < static_cast<size_t>(primcount))
+        staged.resize(static_cast<size_t>(primcount));
     draw_elements_indirect_command_t* pcmds = staged.data();
 
     for (GLsizei i = 0; i < primcount; ++i) {
