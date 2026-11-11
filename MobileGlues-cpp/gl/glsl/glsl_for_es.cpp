@@ -16,6 +16,8 @@
 #include "glslang/SPIRV/GlslangToSpv.h"
 #include <string>
 #include <regex>
+#include <vector>
+#include <cctype>
 #include <strstream>
 #include <algorithm>
 #include <sstream>
@@ -249,7 +251,11 @@ std::string process_uniform_declarations(const std::string& glslCode) {
     result.reserve(glslCode.length());
 
     while (scan_pos < length) {
-        if (glslCode.compare(scan_pos, 7, "uniform") == 0) {
+        const bool uniform_token_start =
+            scan_pos == 0 || !(std::isalnum((unsigned char)glslCode[scan_pos - 1]) || glslCode[scan_pos - 1] == '_');
+        const bool uniform_token_end =
+            scan_pos + 7 >= length || std::isspace((unsigned char)glslCode[scan_pos + 7]);
+        if (uniform_token_start && uniform_token_end && glslCode.compare(scan_pos, 7, "uniform") == 0) {
             if (scan_pos > chunk_start) {
                 result.append(glslCode, chunk_start, scan_pos - chunk_start);
             }
@@ -838,6 +844,80 @@ std::string spirv_to_essl(std::vector<unsigned int> spirv, uint essl_version, in
     return essl;
 }
 
+
+// Adreno rejects dynamic indexing of fragment output arrays (S0015). MC 26.x does
+// exactly that in its OIT transmittance shader (`out vec4 coeff[N]` written through a
+// loop counter). Move the array into a global local array, then flush it into scalar
+// outputs with constant indices at the end of main().
+static size_t find_main_close(const std::string& s) {
+    size_t p = s.find("void main");
+    if (p == std::string::npos) return std::string::npos;
+    p = s.find('{', p);
+    if (p == std::string::npos) return std::string::npos;
+    int depth = 0;
+    for (size_t i = p; i < s.size(); ++i) {
+        char c = s[i];
+        if (c == '/' && i + 1 < s.size() && s[i + 1] == '/') {
+            while (i < s.size() && s[i] != '\n') ++i;
+            continue;
+        }
+        if (c == '/' && i + 1 < s.size() && s[i + 1] == '*') {
+            i += 2;
+            while (i + 1 < s.size() && !(s[i] == '*' && s[i + 1] == '/')) ++i;
+            ++i;
+            continue;
+        }
+        if (c == '{') ++depth;
+        else if (c == '}') {
+            --depth;
+            if (depth == 0) return i;
+        }
+    }
+    return std::string::npos;
+}
+
+std::string legalize_output_arrays(const std::string& glsl) {
+    static const std::regex re(
+        R"(layout\(location\s*=\s*(\d+)\)\s*(highp |mediump |lowp )?out\s+(highp |mediump |lowp )?(vec4|vec3|vec2|float|int|ivec4|uvec4)\s+([A-Za-z_]\w*)\s*\[\s*(\d+)\s*\]\s*;)");
+    struct out_array_t {
+        std::string name;
+        int location;
+        int size;
+    };
+    std::vector<out_array_t> arrays;
+    std::string out;
+    size_t last = 0;
+    for (auto it = std::sregex_iterator(glsl.begin(), glsl.end(), re); it != std::sregex_iterator(); ++it) {
+        const std::smatch& m = *it;
+        out_array_t a;
+        a.location = std::stoi(std::string(m[1].first, m[1].second));
+        a.name = std::string(m[5].first, m[5].second);
+        a.size = std::stoi(std::string(m[6].first, m[6].second));
+        std::string precision = m[3].matched ? std::string(m[3].first, m[3].second) : (m[2].matched ? std::string(m[2].first, m[2].second) : std::string("highp "));
+        out.append(glsl, last, m.position() - last);
+        out += precision + std::string(m[4].first, m[4].second) + " " + a.name + "[" + std::to_string(a.size) + "];";
+        for (int i = 0; i < a.size; ++i) {
+            out += "\nlayout(location = " + std::to_string(a.location + i) + ") out " + precision + std::string(m[4].first, m[4].second) +
+                   " _mg_out_" + a.name + "_" + std::to_string(i) + ";";
+        }
+        last = m.position() + m.length();
+        arrays.push_back(a);
+    }
+    if (arrays.empty()) return glsl;
+    out.append(glsl, last, std::string::npos);
+    size_t close = find_main_close(out);
+    if (close == std::string::npos) return glsl;
+    std::string flush;
+    for (const auto& a : arrays) {
+        for (int i = 0; i < a.size; ++i) {
+            flush += "    _mg_out_" + a.name + "_" + std::to_string(i) + " = " + a.name + "[" + std::to_string(i) +
+                     "];\n";
+        }
+    }
+    out.insert(close, flush);
+    return out;
+}
+
 static bool glslang_inited = false;
 std::string GLSLtoGLSLES_2(const char* glsl_code, GLenum glsl_type, uint essl_version, int& return_code) {
     std::string correct_glsl_str = preprocess_glsl(glsl_code, glsl_type);
@@ -869,6 +949,9 @@ std::string GLSLtoGLSLES_2(const char* glsl_code, GLenum glsl_type, uint essl_ve
     }
     essl = processOutColorLocations(essl);
     essl = forceSupporterOutput(essl);
+    if (glsl_type == GL_FRAGMENT_SHADER) {
+        essl = legalize_output_arrays(essl);
+    }
 
     LOG_D("Originally GLSL to GLSL ES Complete: \n%s", essl.c_str())
     return_code = errc;
